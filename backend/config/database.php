@@ -3,6 +3,10 @@
 // Database connection configuration
 // This file should be placed on your Namecheap hosting
 
+// Enable error logging
+ini_set('log_errors', 1);
+ini_set('error_log', '../error_log');
+
 // Set to true in production to prevent error details from being exposed
 $hideErrors = false;
 
@@ -30,8 +34,12 @@ try {
             PDO::ATTR_EMULATE_PREPARES => false
         ]
     );
+    
+    error_log("Database connection successful");
 } catch (PDOException $e) {
     // In production, display a generic error message
+    error_log("Database connection error: " . $e->getMessage());
+    
     if ($hideErrors) {
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Database connection error']);

@@ -39,12 +39,12 @@ RewriteEngine On
     RewriteRule .* - [F,L]
 </IfModule>
 
-# Enable CORS
+# Enable CORS - UPDATED
 <IfModule mod_headers.c>
-    Header set Access-Control-Allow-Origin "*"
-    Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
-    Header set Access-Control-Allow-Credentials "true"
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    Header always set Access-Control-Max-Age "1728000"
     
     # Handle preflight OPTIONS requests
     RewriteEngine On

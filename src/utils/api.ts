@@ -1,10 +1,9 @@
-
 /**
  * API configuration and utility functions for database operations
  */
 
 // Base API URL - update to match the actual domain where PHP files are hosted
-// Remove the trailing slash if it exists
+// THIS IS CRITICAL - This URL must be changed to your actual API URL without a trailing slash
 export const API_BASE_URL = 'https://sounny.ma';
 
 // API endpoints
@@ -33,31 +32,56 @@ export interface LoginCredentials {
 // API functions
 export async function createReservation(reservationData: Omit<Reservation, 'id' | 'status'>): Promise<{ success: boolean; message: string; id?: number }> {
   try {
-    console.log('Submitting reservation to:', `${API_BASE_URL}${ENDPOINTS.CREATE_RESERVATION}`);
+    const apiUrl = `${API_BASE_URL}${ENDPOINTS.CREATE_RESERVATION}`;
+    console.log('Submitting reservation to:', apiUrl);
     console.log('Reservation data:', JSON.stringify(reservationData));
     
-    const response = await fetch(`${API_BASE_URL}${ENDPOINTS.CREATE_RESERVATION}`, {
+    // Create URLSearchParams for testing connectivity
+    const testUrl = new URL(apiUrl);
+    console.log('API URL is valid:', testUrl.toString());
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       body: JSON.stringify(reservationData),
       mode: 'cors',
+      cache: 'no-cache',
+      credentials: 'omit',
     });
     
+    console.log('Response status:', response.status);
+    
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      console.error('API error:', errorData || response.statusText);
-      return { 
-        success: false, 
-        message: errorData?.message || `Server error: ${response.status}` 
-      };
+      let errorMessage = 'Server error';
+      try {
+        const errorData = await response.json();
+        console.error('API error:', errorData);
+        errorMessage = errorData.message || `Server error: ${response.status}`;
+      } catch (jsonError) {
+        console.error('Error parsing error response:', jsonError);
+        errorMessage = `Server returned ${response.status}: ${response.statusText}`;
+      }
+      return { success: false, message: errorMessage };
     }
     
-    return await response.json();
+    const data = await response.json();
+    console.log('API response:', data);
+    return data;
   } catch (error) {
     console.error('Error creating reservation:', error);
-    return { success: false, message: 'Network error. Please try again.' };
+    
+    // Try to provide more helpful error message
+    let errorMessage = 'Network error. Please try again.';
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      errorMessage = 'Cannot connect to the server. Please check your network connection or contact support.';
+    } else if (error instanceof Error) {
+      errorMessage = `Error: ${error.message}`;
+    }
+    
+    return { success: false, message: errorMessage };
   }
 }
 
