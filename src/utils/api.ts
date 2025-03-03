@@ -4,6 +4,7 @@
  */
 
 // Base API URL - update to match the actual domain where PHP files are hosted
+// Remove the trailing slash if it exists
 export const API_BASE_URL = 'https://sounny.ma';
 
 // API endpoints
@@ -32,12 +33,16 @@ export interface LoginCredentials {
 // API functions
 export async function createReservation(reservationData: Omit<Reservation, 'id' | 'status'>): Promise<{ success: boolean; message: string; id?: number }> {
   try {
+    console.log('Submitting reservation to:', `${API_BASE_URL}${ENDPOINTS.CREATE_RESERVATION}`);
+    console.log('Reservation data:', JSON.stringify(reservationData));
+    
     const response = await fetch(`${API_BASE_URL}${ENDPOINTS.CREATE_RESERVATION}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(reservationData),
+      mode: 'cors',
     });
     
     if (!response.ok) {
