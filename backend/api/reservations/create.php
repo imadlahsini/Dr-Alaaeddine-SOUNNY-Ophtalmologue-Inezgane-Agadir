@@ -6,16 +6,18 @@
 // CORS headers - CRITICAL for cross-domain requests
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin");
 header("Access-Control-Max-Age: 3600");
 header("Content-Type: application/json");
 
 // Log request for debugging
 error_log("Received request to create.php with method: " . $_SERVER['REQUEST_METHOD']);
+error_log("Request headers: " . print_r(getallheaders(), true));
 
 // Handle preflight request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
+    error_log("Responding to OPTIONS request with 200 OK");
     exit;
 }
 

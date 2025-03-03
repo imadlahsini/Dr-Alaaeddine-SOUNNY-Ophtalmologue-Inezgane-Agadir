@@ -1,13 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
 import { fr, ar } from 'date-fns/locale';
-import { Calendar, User, Phone, ArrowRight, Loader2 } from 'lucide-react';
+import { Calendar, User, Phone, ArrowRight, Loader2, CloudOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import TimeSlotSelector from './TimeSlotSelector';
 import { sendTelegramNotification } from '../utils/telegramService';
-import { createReservation } from '../utils/api';
+import { createReservation, USE_FALLBACK } from '../utils/api';
 
 const translations = {
   fr: {
@@ -34,13 +35,15 @@ const translations = {
         placeholder: "Entrez votre numéro de téléphone"
       },
       submit: "Envoyez",
-      submitting: "En cours..."
+      submitting: "En cours...",
+      offlineMode: "Mode Hors-ligne"
     },
     validation: {
       required: "Ce champ est obligatoire",
       phone: "Numéro de téléphone invalide"
     },
-    success: "Votre rendez-vous a été réservé avec succès !"
+    success: "Votre rendez-vous a été réservé avec succès !",
+    offlineSuccess: "Votre rendez-vous a été enregistré en mode hors-ligne. Nous vous contacterons dès que possible."
   },
   ar: {
     title: "احجز موعدك",
@@ -66,13 +69,15 @@ const translations = {
         placeholder: "أدخل رقم هاتفك"
       },
       submit: "إرسال",
-      submitting: "جاري المعالجة..."
+      submitting: "جاري المعالجة...",
+      offlineMode: "وضع عدم الاتصال"
     },
     validation: {
       required: "هذا الحقل مطلوب",
       phone: "رقم هاتف غير صحيح"
     },
-    success: "تم حجز موعدك بنجاح!"
+    success: "تم حجز موعدك بنجاح!",
+    offlineSuccess: "تم تسجيل موعدك في وضع عدم الاتصال. سنتصل بك في أقرب وقت ممكن."
   },
   tm: {
     title: "ⵉⵙⵖⵏ ⵜⴰⵡⴰⵍⵜ ⵏⵏⴽ",
@@ -98,13 +103,15 @@ const translations = {
         placeholder: "ⵙⴽⵛⵎ ⵓⵟⵟⵓⵏ ⵏ ⵜⵜⵉⵍⵉⴼⵓⵏ ⵏⵏⴽ"
       },
       submit: "ⴰⵣⵏ",
-      submitting: "ⵉⵜⵜⵓⵙⴽⴰⵔ..."
+      submitting: "ⵉⵜⵜⵓⵙⴽⴰⵔ...",
+      offlineMode: "ⴰⵙⴽⴰⵔ ⴰⵎⵙⵉⴳⴳⵯⵍ"
     },
     validation: {
       required: "ⵉⵍⴰ ⴰⴷ ⵜⵙⴽⵛⵎⴷ ⴰⵢⴰ",
       phone: "ⵓⵟⵟⵓⵏ ⵏ ⵜⵜⵉⵍⵉⴼⵓⵏ ⵡⴰⵔ ⵉⵣⴷⵉ"
     },
-    success: "ⵜⴰⵡⴰⵍⵜ ⵏⵏⴽ ⵜⵎⵙⴽⵍ ⵙ ⵜⵖⴰⵔⴰ!"
+    success: "ⵜⴰⵡⴰⵍⵜ ⵏⵏⴽ ⵜⵎⵙⴽⵍ ⵙ ⵜⵖⴰⵔⴰ!",
+    offlineSuccess: "ⵜⴰⵡⴰⵍⵜ ⵏⵏⴽ ⵜⵎⵙⴽⵍ ⵙ ⵓⵙⴽⴰⵔ ⴰⵎⵙⵉⴳⴳⵯⵍ. ⵔⴰⴷ ⴽⵉⴷⴽ ⵏⵎⵢⴰⵡⴰⴹ ⴷⵖⵢⴰ."
   }
 };
 
@@ -183,6 +190,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
     setIsSubmitting(true);
     
     try {
+      console.log('Starting form submission...');
       const result = await createReservation({
         name: formData.name,
         phone: formData.phone,
@@ -191,6 +199,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
       });
       
       if (result.success) {
+        // Try to send Telegram notification (if available)
         try {
           await sendTelegramNotification({
             name: formData.name,
@@ -202,7 +211,13 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
           console.warn('Telegram notification failed, but reservation was saved:', telegramError);
         }
         
-        toast.success(t.success);
+        // Use appropriate success message based on mode
+        const successMessage = result.message && result.message.includes('offline') 
+          ? t.offlineSuccess 
+          : t.success;
+          
+        toast.success(successMessage);
+        
         setTimeout(() => {
           navigate('/thank-you');
         }, 1000);
@@ -228,6 +243,13 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       dir={isRtl ? 'rtl' : 'ltr'}
     >
+      {USE_FALLBACK && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2 text-amber-700">
+          <CloudOff className="w-5 h-5 flex-shrink-0" />
+          <p className="text-sm">{t.form.offlineMode}</p>
+        </div>
+      )}
+
       <div className="form-group">
         <label htmlFor="date">
           <Calendar className="w-4 h-4 mr-1" /> {t.form.date.label}

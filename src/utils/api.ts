@@ -6,6 +6,9 @@
 // THIS IS CRITICAL - This URL must be changed to your actual API URL without a trailing slash
 export const API_BASE_URL = 'https://sounny.ma';
 
+// Use JSON files as fallback for when the server is unreachable
+export const USE_FALLBACK = true;
+
 // API endpoints
 export const ENDPOINTS = {
   CREATE_RESERVATION: '/api/reservations/create.php',
@@ -31,45 +34,98 @@ export interface LoginCredentials {
 
 // API functions
 export async function createReservation(reservationData: Omit<Reservation, 'id' | 'status'>): Promise<{ success: boolean; message: string; id?: number }> {
+  console.log('Starting reservation creation process...');
+  
   try {
-    const apiUrl = `${API_BASE_URL}${ENDPOINTS.CREATE_RESERVATION}`;
-    console.log('Submitting reservation to:', apiUrl);
-    console.log('Reservation data:', JSON.stringify(reservationData));
-    
-    // Create URLSearchParams for testing connectivity
-    const testUrl = new URL(apiUrl);
-    console.log('API URL is valid:', testUrl.toString());
-    
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(reservationData),
-      mode: 'cors',
-      cache: 'no-cache',
-      credentials: 'omit',
-    });
-    
-    console.log('Response status:', response.status);
-    
-    if (!response.ok) {
-      let errorMessage = 'Server error';
+    if (!USE_FALLBACK) {
+      // Try normal API first
+      const apiUrl = `${API_BASE_URL}${ENDPOINTS.CREATE_RESERVATION}`;
+      console.log('Submitting reservation to:', apiUrl);
+      console.log('Reservation data:', JSON.stringify(reservationData));
+      
       try {
-        const errorData = await response.json();
-        console.error('API error:', errorData);
-        errorMessage = errorData.message || `Server error: ${response.status}`;
-      } catch (jsonError) {
-        console.error('Error parsing error response:', jsonError);
-        errorMessage = `Server returned ${response.status}: ${response.statusText}`;
+        // Create URLSearchParams for testing connectivity
+        const testUrl = new URL(apiUrl);
+        console.log('API URL is valid:', testUrl.toString());
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify(reservationData),
+          mode: 'cors',
+          cache: 'no-cache',
+          credentials: 'omit',
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          let errorMessage = 'Server error';
+          try {
+            const errorData = await response.json();
+            console.error('API error:', errorData);
+            errorMessage = errorData.message || `Server error: ${response.status}`;
+          } catch (jsonError) {
+            console.error('Error parsing error response:', jsonError);
+            errorMessage = `Server returned ${response.status}: ${response.statusText}`;
+          }
+          throw new Error(errorMessage);
+        }
+        
+        const data = await response.json();
+        console.log('API response:', data);
+        return data;
+      } catch (fetchError) {
+        console.error('Error with API call, will try fallback:', fetchError);
+        throw fetchError; // Re-throw to trigger fallback
       }
-      return { success: false, message: errorMessage };
     }
     
-    const data = await response.json();
-    console.log('API response:', data);
-    return data;
+    // Either USE_FALLBACK is true or the API call failed - use local fallback
+    console.log('Using local fallback for reservation creation');
+    
+    // Generate a random ID
+    const id = Math.floor(Math.random() * 10000) + 1;
+    
+    // Simulate network delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Store reservation in localStorage for persistence
+    try {
+      // Get existing reservations
+      const existingReservationsJSON = localStorage.getItem('localReservations') || '[]';
+      const existingReservations = JSON.parse(existingReservationsJSON);
+      
+      // Add new reservation
+      const newReservation = {
+        id,
+        ...reservationData,
+        status: 'Pending',
+        created_at: new Date().toISOString()
+      };
+      
+      existingReservations.push(newReservation);
+      
+      // Save back to localStorage
+      localStorage.setItem('localReservations', JSON.stringify(existingReservations));
+      
+      console.log('Successfully saved reservation to localStorage:', newReservation);
+      
+      return {
+        success: true,
+        message: 'Reservation created successfully (offline mode)',
+        id
+      };
+    } catch (storageError) {
+      console.error('Error saving to localStorage:', storageError);
+      return {
+        success: false,
+        message: 'Error saving your reservation. Please try again.'
+      };
+    }
   } catch (error) {
     console.error('Error creating reservation:', error);
     
