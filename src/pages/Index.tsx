@@ -15,7 +15,7 @@ const Index = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-background flex flex-col items-center justify-center p-6 ${language === 'ar' ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen bg-background flex flex-col items-center justify-center p-4 sm:p-6 ${language === 'ar' ? 'rtl' : 'ltr'}`}>
       {/* Language selection button */}
       <LanguageSwitcher 
         currentLanguage={language} 
@@ -26,7 +26,7 @@ const Index = () => {
       <motion.img 
         src="https://sounny.ma/logo.webp" 
         alt="Logo" 
-        className="w-[156px] mb-8"
+        className="w-[120px] sm:w-[156px] mb-6 sm:mb-8"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
@@ -34,7 +34,7 @@ const Index = () => {
 
       {/* Title */}
       <motion.h1 
-        className="text-3xl font-bold text-primary mb-8 text-center"
+        className="text-2xl sm:text-3xl font-bold text-primary mb-6 sm:mb-8 text-center px-2"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.3 }}
