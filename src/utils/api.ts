@@ -3,15 +3,15 @@
  * API configuration and utility functions for database operations
  */
 
-// Base API URL - replace with your actual domain where PHP files will be hosted
-export const API_BASE_URL = 'https://sounny.ma/api';
+// Base API URL - update to match the actual domain where PHP files are hosted
+export const API_BASE_URL = 'https://sounny.ma';
 
 // API endpoints
 export const ENDPOINTS = {
-  CREATE_RESERVATION: '/reservations/create.php',
-  LIST_RESERVATIONS: '/reservations/list.php',
-  UPDATE_RESERVATION: '/reservations/update.php',
-  AUTH_LOGIN: '/auth/login.php',
+  CREATE_RESERVATION: '/api/reservations/create.php',
+  LIST_RESERVATIONS: '/api/reservations/list.php',
+  UPDATE_RESERVATION: '/api/reservations/update.php',
+  AUTH_LOGIN: '/api/auth/login.php',
 };
 
 // Types
@@ -39,6 +39,15 @@ export async function createReservation(reservationData: Omit<Reservation, 'id' 
       },
       body: JSON.stringify(reservationData),
     });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error('API error:', errorData || response.statusText);
+      return { 
+        success: false, 
+        message: errorData?.message || `Server error: ${response.status}` 
+      };
+    }
     
     return await response.json();
   } catch (error) {

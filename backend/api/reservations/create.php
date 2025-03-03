@@ -3,10 +3,10 @@
 // Create reservation endpoint
 // This file should be placed on your Namecheap hosting
 
-// CORS headers
+// CORS headers - Allow requests from any origin
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 header("Content-Type: application/json");
 
 // Handle preflight request
@@ -83,6 +83,8 @@ try {
         'id' => $reservationId
     ]);
 } catch (PDOException $e) {
+    // Log the error for debugging but don't expose details to client
+    error_log("Database error: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Error creating reservation']);
 }
