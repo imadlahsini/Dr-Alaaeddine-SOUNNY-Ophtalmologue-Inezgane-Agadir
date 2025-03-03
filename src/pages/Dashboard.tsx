@@ -1,13 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, List, Calendar as CalendarIcon, Plus, RefreshCw } from 'lucide-react';
+import { LogOut, List, Calendar as CalendarIcon, Plus, RefreshCw, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import ReservationTable from '../components/ReservationTable';
 import CalendarView from '../components/CalendarView';
 
-// Mock data for reservations
 const MOCK_RESERVATIONS = [
   {
     id: 1,
@@ -43,7 +41,6 @@ const MOCK_RESERVATIONS = [
   }
 ];
 
-// Type for reservations
 interface Reservation {
   id: number;
   name: string;
@@ -61,7 +58,6 @@ const Dashboard = () => {
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
 
   useEffect(() => {
-    // Check if user is authenticated
     const isAuthenticated = localStorage.getItem('isAuthenticated');
     if (isAuthenticated !== 'true') {
       navigate('/admin');
@@ -94,9 +90,7 @@ const Dashboard = () => {
 
   const handleRefresh = () => {
     setIsLoading(true);
-    // Simulate loading data from the server
     setTimeout(() => {
-      // In a real app, this would be an API call to fetch the latest reservations
       toast.success('Reservations refreshed');
       setIsLoading(false);
     }, 1000);
@@ -106,7 +100,6 @@ const Dashboard = () => {
     setSelectedReservation(reservation);
   };
 
-  // Stats for the dashboard
   const stats = {
     total: reservations.length,
     confirmed: reservations.filter(r => r.status === 'Confirmed').length,
@@ -117,7 +110,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
@@ -127,13 +119,25 @@ const Dashboard = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-1 px-4 py-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
+              onClick={() => navigate('/telegram-config')}
+            >
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Telegram Setup</span>
+              <span className="sm:hidden">Setup</span>
+            </motion.button>
+            
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               className="flex items-center gap-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
               onClick={handleRefresh}
               disabled={isLoading}
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
+              <span className="hidden sm:inline">Refresh</span>
             </motion.button>
+            
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -141,15 +145,13 @@ const Dashboard = () => {
               onClick={handleLogout}
             >
               <LogOut className="w-4 h-4" />
-              <span>Logout</span>
+              <span className="hidden sm:inline">Logout</span>
             </motion.button>
           </div>
         </div>
       </header>
       
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <motion.div
             whileHover={{ y: -5, boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)' }}
@@ -192,7 +194,6 @@ const Dashboard = () => {
           </motion.div>
         </div>
         
-        {/* View Toggle */}
         <div className="flex justify-between items-center mb-6">
           <div className="inline-flex rounded-lg shadow-sm">
             <button
@@ -229,7 +230,6 @@ const Dashboard = () => {
           </motion.button>
         </div>
         
-        {/* View Content */}
         <AnimatePresence mode="wait">
           {view === 'list' ? (
             <motion.div
@@ -262,7 +262,6 @@ const Dashboard = () => {
         </AnimatePresence>
       </main>
       
-      {/* Reservation Detail Modal */}
       <AnimatePresence>
         {selectedReservation && (
           <motion.div

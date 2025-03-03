@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, addDays, isValid } from 'date-fns';
 import { fr, ar } from 'date-fns/locale';
@@ -7,8 +6,8 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import TimeSlotSelector from './TimeSlotSelector';
+import { sendTelegramNotification } from '../utils/telegramService';
 
-// Define translations
 const translations = {
   fr: {
     title: "Réservez Votre Rendez-vous",
@@ -127,7 +126,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
   const [formValid, setFormValid] = useState(false);
   const [dateOptions, setDateOptions] = useState<{ value: string; label: string; disabled: boolean }[]>([]);
 
-  // Initialize date options for the next 5 days
   useEffect(() => {
     const options = [];
     const today = new Date();
@@ -143,7 +141,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
       options.push({
         value: formattedDate,
         label: localizedDate,
-        disabled: dayOfWeek === 0  // Disable Sundays
+        disabled: dayOfWeek === 0
       });
     }
     
@@ -183,10 +181,21 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
     
     setIsSubmitting(true);
     
-    // Simulate API call
     try {
-      // In a real app, this would be an API call to save the reservation
       await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const notificationSent = await sendTelegramNotification({
+        name: formData.name,
+        phone: formData.phone,
+        date: formData.date,
+        timeSlot: formData.timeSlot
+      });
+      
+      if (notificationSent) {
+        console.log('Telegram notification sent successfully');
+      } else {
+        console.warn('Failed to send Telegram notification');
+      }
       
       toast.success(t.success);
       setTimeout(() => {
@@ -200,7 +209,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
     }
   };
 
-  // Determine text direction based on language
   const isRtl = language === 'ar';
 
   return (
@@ -212,7 +220,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       dir={isRtl ? 'rtl' : 'ltr'}
     >
-      {/* Date Selection */}
       <div className="form-group">
         <label htmlFor="date">
           <Calendar className="w-4 h-4 mr-1" /> {t.form.date.label}
@@ -238,7 +245,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
         </select>
       </div>
 
-      {/* Time Slot Selection */}
       <TimeSlotSelector 
         selectedDate={formData.date}
         onChange={handleTimeSlotChange}
@@ -246,7 +252,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
         labels={t.form.time}
       />
 
-      {/* Name Field */}
       <div className="form-group">
         <label htmlFor="name">
           <User className="w-4 h-4 mr-1" /> {t.form.name.label}
@@ -263,7 +268,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
         />
       </div>
 
-      {/* Phone Field */}
       <div className="form-group">
         <label htmlFor="phone">
           <Phone className="w-4 h-4 mr-1" /> {t.form.phone.label}
@@ -281,7 +285,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
         />
       </div>
 
-      {/* Submit Button */}
       <motion.button
         type="submit"
         className="primary-button group"

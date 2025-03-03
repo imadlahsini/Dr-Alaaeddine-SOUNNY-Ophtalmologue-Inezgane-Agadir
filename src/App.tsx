@@ -1,38 +1,29 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
+import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Index from './pages/Index';
+import ThankYou from './pages/ThankYou';
+import Admin from './pages/Admin';
+import Dashboard from './pages/Dashboard';
+import NotFound from './pages/NotFound';
+import TelegramConfig from './pages/TelegramConfig';
+import { Toaster } from "sonner";
+import './App.css';
 
-// Pages
-import Index from "./pages/Index";
-import ThankYou from "./pages/ThankYou";
-import Admin from "./pages/Admin";
-import Dashboard from "./pages/Dashboard";
-import NotFound from "./pages/NotFound";
-
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner position="top-right" closeButton theme="light" richColors />
-      <BrowserRouter>
-        <AnimatePresence mode="wait">
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/thank-you" element={<ThankYou />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AnimatePresence>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/thank-you" element={<ThankYou />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/telegram-config" element={<TelegramConfig />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <Toaster position="top-center" richColors />
+    </Router>
+  );
+}
 
 export default App;
