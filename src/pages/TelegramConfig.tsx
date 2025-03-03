@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bot, Key, MessageCircle, Save, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Bot, Key, MessageCircle, Save, ArrowLeft, AlertCircle, Loader } from 'lucide-react';
 import { toast } from 'sonner';
 import { sendTelegramNotification } from '../utils/telegramService';
 
@@ -159,7 +159,7 @@ const TelegramConfig = () => {
               className="flex items-center justify-center px-4 py-2 bg-primary text-white rounded-md w-1/2"
             >
               {isSaving ? (
-                <>Saving... <Loader2 className="ml-2 h-4 w-4 animate-spin" /></>
+                <>Saving... <Loader className="ml-2 h-4 w-4 animate-spin" /></>
               ) : (
                 <>Save <Save className="ml-2 h-4 w-4" /></>
               )}
@@ -173,7 +173,7 @@ const TelegramConfig = () => {
               className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md w-1/2"
             >
               {isTesting ? (
-                <>Testing... <Loader2 className="ml-2 h-4 w-4 animate-spin" /></>
+                <>Testing... <Loader className="ml-2 h-4 w-4 animate-spin" /></>
               ) : (
                 <>Send Test Message <MessageCircle className="ml-2 h-4 w-4" /></>
               )}
