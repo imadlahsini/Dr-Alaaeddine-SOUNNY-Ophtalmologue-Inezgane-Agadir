@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
 import { fr, ar } from 'date-fns/locale';
-import { Calendar, User, Phone, ArrowRight, Loader2, CloudOff } from 'lucide-react';
+import { Calendar, User, Phone, ArrowRight, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -211,12 +210,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
           console.warn('Telegram notification failed, but reservation was saved:', telegramError);
         }
         
-        // Use appropriate success message based on mode
-        const successMessage = result.message && result.message.includes('offline') 
-          ? t.offlineSuccess 
-          : t.success;
-          
-        toast.success(successMessage);
+        toast.success(t.success);
         
         setTimeout(() => {
           navigate('/thank-you');
@@ -243,13 +237,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       dir={isRtl ? 'rtl' : 'ltr'}
     >
-      {USE_FALLBACK && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2 text-amber-700">
-          <CloudOff className="w-5 h-5 flex-shrink-0" />
-          <p className="text-sm">{t.form.offlineMode}</p>
-        </div>
-      )}
-
       <div className="form-group">
         <label htmlFor="date">
           <Calendar className="w-4 h-4 mr-1" /> {t.form.date.label}
