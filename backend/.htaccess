@@ -1,0 +1,47 @@
+
+# Apache configuration file
+# This file should be placed on your Namecheap hosting
+
+# Prevent directory listing
+Options -Indexes
+
+# Set default character set
+AddDefaultCharset UTF-8
+
+# Enable rewriting
+RewriteEngine On
+
+# Prevent access to specific directories and files
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "^(config|utils)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "\.md$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "\.sql$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect against SQL injection and XSS attacks
+<IfModule mod_rewrite.c>
+    RewriteCond %{QUERY_STRING} (;|<|>|'|"|\)|%0A|%0D|%22|%27|%3C|%3E|%00).*(/\*|union|select|insert|drop|update|md5|benchmark|or|and) [NC,OR]
+    RewriteCond %{QUERY_STRING} (concat|delete|having|truncate) [NC]
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# Enable CORS
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, PUT, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+</IfModule>

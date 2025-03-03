@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -5,95 +6,99 @@ import { LogOut, List, Calendar as CalendarIcon, Plus, RefreshCw, Settings } fro
 import { toast } from 'sonner';
 import ReservationTable from '../components/ReservationTable';
 import CalendarView from '../components/CalendarView';
-
-const MOCK_RESERVATIONS = [
-  {
-    id: 1,
-    name: 'John Doe',
-    phone: '0612345678',
-    date: '12/05/2023',
-    timeSlot: '8h00-11h00',
-    status: 'Confirmed' as const
-  },
-  {
-    id: 2,
-    name: 'Jane Smith',
-    phone: '0698765432',
-    date: '13/05/2023',
-    timeSlot: '11h00-14h00',
-    status: 'Pending' as const
-  },
-  {
-    id: 3,
-    name: 'Ahmed Hassan',
-    phone: '0623456789',
-    date: '14/05/2023',
-    timeSlot: '14h00-16h00',
-    status: 'Canceled' as const
-  },
-  {
-    id: 4,
-    name: 'Maria Garcia',
-    phone: '0634567890',
-    date: '15/05/2023',
-    timeSlot: '8h00-11h00',
-    status: 'Not Responding' as const
-  }
-];
-
-interface Reservation {
-  id: number;
-  name: string;
-  phone: string;
-  date: string;
-  timeSlot: string;
-  status: 'Pending' | 'Confirmed' | 'Canceled' | 'Not Responding';
-}
+import { fetchReservations, updateReservation, Reservation } from '../utils/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [reservations, setReservations] = useState<Reservation[]>(MOCK_RESERVATIONS);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [view, setView] = useState<'list' | 'calendar'>('list');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem('isAuthenticated');
     if (isAuthenticated !== 'true') {
       navigate('/admin');
+      return;
     }
+    
+    // Load reservations when component mounts
+    loadReservations();
   }, [navigate]);
+
+  const loadReservations = async () => {
+    setIsLoading(true);
+    try {
+      const result = await fetchReservations();
+      
+      if (result.success && result.data) {
+        setReservations(result.data);
+      } else {
+        toast.error(result.message || 'Failed to load reservations');
+        // If authentication issue, redirect to login
+        if (result.message === 'Not authenticated') {
+          localStorage.removeItem('isAuthenticated');
+          localStorage.removeItem('authToken');
+          navigate('/admin');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading reservations:', error);
+      toast.error('Failed to load reservations');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('authToken');
     toast.success('Logged out successfully');
     navigate('/admin');
   };
 
-  const handleStatusChange = (id: number, status: Reservation['status']) => {
-    setReservations(prev => 
-      prev.map(res => 
-        res.id === id ? { ...res, status } : res
-      )
-    );
-    toast.success(`Reservation status updated to ${status}`);
+  const handleStatusChange = async (id: number, status: Reservation['status']) => {
+    try {
+      const result = await updateReservation(id, { status });
+      
+      if (result.success) {
+        setReservations(prev => 
+          prev.map(res => 
+            res.id === id ? { ...res, status } : res
+          )
+        );
+        toast.success(`Reservation status updated to ${status}`);
+      } else {
+        toast.error(result.message || 'Failed to update status');
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Failed to update status');
+    }
   };
 
-  const handleUpdateReservation = (id: number, updatedData: Partial<Reservation>) => {
-    setReservations(prev => 
-      prev.map(res => 
-        res.id === id ? { ...res, ...updatedData } : res
-      )
-    );
-    toast.success('Reservation updated successfully');
+  const handleUpdateReservation = async (id: number, updatedData: Partial<Reservation>) => {
+    try {
+      const result = await updateReservation(id, updatedData);
+      
+      if (result.success) {
+        setReservations(prev => 
+          prev.map(res => 
+            res.id === id ? { ...res, ...updatedData } : res
+          )
+        );
+        toast.success('Reservation updated successfully');
+      } else {
+        toast.error(result.message || 'Failed to update reservation');
+      }
+    } catch (error) {
+      console.error('Error updating reservation:', error);
+      toast.error('Failed to update reservation');
+    }
   };
 
   const handleRefresh = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      toast.success('Reservations refreshed');
-      setIsLoading(false);
-    }, 1000);
+    loadReservations();
   };
 
   const handleReservationSelect = (reservation: Reservation) => {

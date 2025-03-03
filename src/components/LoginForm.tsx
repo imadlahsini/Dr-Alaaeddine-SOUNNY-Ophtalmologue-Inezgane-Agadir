@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Lock, User, LogIn, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { loginAdmin } from '../utils/api';
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -23,17 +24,16 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      // Simulate API login call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const result = await loginAdmin(credentials);
       
-      // In a real app, you would validate the credentials against the backend
-      if (credentials.username === 'admin' && credentials.password === 'password') {
-        // Store authentication state (in a real app, this would be a JWT token)
+      if (result.success && result.token) {
+        // Store the auth token
+        localStorage.setItem('authToken', result.token);
         localStorage.setItem('isAuthenticated', 'true');
         toast.success('Login successful!');
         navigate('/dashboard');
       } else {
-        toast.error('Invalid username or password');
+        toast.error(result.message || 'Invalid username or password');
       }
     } catch (error) {
       toast.error('An error occurred during login');

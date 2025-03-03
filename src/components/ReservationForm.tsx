@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { format, addDays, isValid } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { fr, ar } from 'date-fns/locale';
 import { Calendar, User, Phone, ArrowRight, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import TimeSlotSelector from './TimeSlotSelector';
 import { sendTelegramNotification } from '../utils/telegramService';
+import { createReservation } from '../utils/api';
 
 const translations = {
   fr: {
@@ -182,25 +183,32 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
     setIsSubmitting(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const notificationSent = await sendTelegramNotification({
+      const result = await createReservation({
         name: formData.name,
         phone: formData.phone,
         date: formData.date,
         timeSlot: formData.timeSlot
       });
       
-      if (notificationSent) {
-        console.log('Telegram notification sent successfully');
+      if (result.success) {
+        try {
+          await sendTelegramNotification({
+            name: formData.name,
+            phone: formData.phone,
+            date: formData.date,
+            timeSlot: formData.timeSlot
+          });
+        } catch (telegramError) {
+          console.warn('Telegram notification failed, but reservation was saved:', telegramError);
+        }
+        
+        toast.success(t.success);
+        setTimeout(() => {
+          navigate('/thank-you');
+        }, 1000);
       } else {
-        console.warn('Failed to send Telegram notification');
+        toast.error(result.message || 'Failed to create reservation');
       }
-      
-      toast.success(t.success);
-      setTimeout(() => {
-        navigate('/thank-you');
-      }, 1000);
     } catch (error) {
       console.error('Error submitting form:', error);
       toast.error('An error occurred. Please try again.');
