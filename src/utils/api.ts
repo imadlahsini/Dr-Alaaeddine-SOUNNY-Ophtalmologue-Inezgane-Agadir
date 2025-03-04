@@ -1,3 +1,4 @@
+
 /**
  * API configuration and utility functions using Supabase
  */
@@ -5,6 +6,9 @@ import { createClient } from '@supabase/supabase-js';
 
 // Supabase configuration - using our standard client
 import { supabase } from '../integrations/supabase/client';
+
+// Re-export supabase for backward compatibility
+export { supabase };
 
 // Types
 export interface Reservation {

@@ -5,7 +5,7 @@
  * Uses a Supabase Edge Function for secure API communication
  */
 
-import { supabase } from '../utils/api';
+import { supabase } from '../integrations/supabase/client';
 
 interface ReservationData {
   name: string;

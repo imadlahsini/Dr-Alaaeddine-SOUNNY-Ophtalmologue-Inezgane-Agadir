@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -6,7 +7,7 @@ import {
   AlertCircle, Loader2, Link as LinkIcon, CheckCircle2 
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '../utils/api';
+import { supabase } from '../integrations/supabase/client';
 import { sendTelegramNotification, checkTelegramConfig } from '../utils/telegramService';
 
 const TelegramConfig = () => {
