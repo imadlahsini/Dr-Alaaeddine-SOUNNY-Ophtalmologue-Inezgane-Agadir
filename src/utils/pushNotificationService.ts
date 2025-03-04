@@ -55,8 +55,7 @@ export const sendReservationNotification = (reservationData: {
       body: `${reservationData.name} has booked for ${reservationData.date} at ${reservationData.timeSlot}`,
       icon: '/favicon.ico', // Use site favicon as notification icon
       tag: 'new-reservation', // Tag for grouping similar notifications
-      requireInteraction: true, // Keep notification visible until user interacts with it
-      vibrate: [200, 100, 200] // Vibration pattern for mobile devices
+      requireInteraction: true // Keep notification visible until user interacts with it
     });
 
     console.log('Notification created successfully');
