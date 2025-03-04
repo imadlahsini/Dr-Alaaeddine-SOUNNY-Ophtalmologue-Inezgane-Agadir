@@ -18,19 +18,26 @@ export const useRealtimeSubscription = ({
 }: UseRealtimeSubscriptionProps) => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const channelRef = useRef<any>(null);
-  const toastShownRef = useRef(false);
-  const toastTimeoutRef = useRef<number | null>(null);
   
-  // Cleanup function to clear any existing timeouts
-  const clearToastTimeout = () => {
-    if (toastTimeoutRef.current) {
-      clearTimeout(toastTimeoutRef.current);
-      toastTimeoutRef.current = null;
-    }
+  // Prevent multiple toast notifications using session storage
+  // instead of refs which don't persist between page refreshes
+  const hasShownToast = () => {
+    return sessionStorage.getItem('realtime_toast_shown') === 'true';
+  };
+  
+  const markToastShown = () => {
+    sessionStorage.setItem('realtime_toast_shown', 'true');
+    
+    // Clear the toast flag after 1 hour to avoid permanent blocking
+    setTimeout(() => {
+      sessionStorage.removeItem('realtime_toast_shown');
+    }, 60 * 60 * 1000); // 1 hour
   };
 
   useEffect(() => {
-    console.log('Setting up real-time subscription hook...');
+    // Prevent setting up multiple subscriptions
+    const setupId = Math.random().toString(36).substring(7);
+    console.log(`Setting up real-time subscription hook... (ID: ${setupId})`);
     
     const setupSubscription = () => {
       try {
@@ -39,7 +46,7 @@ export const useRealtimeSubscription = ({
           removeSubscription();
         }
         
-        console.log('Creating new realtime channel subscription');
+        console.log(`Creating new realtime channel subscription (ID: ${setupId})`);
         const channel = supabase
           .channel('schema-db-changes')
           .on('postgres_changes', 
@@ -92,65 +99,68 @@ export const useRealtimeSubscription = ({
             }
           )
           .subscribe((status) => {
-            console.log('Real-time subscription status:', status);
+            console.log(`Real-time subscription status (ID: ${setupId}):`, status);
             
             if (status === 'SUBSCRIBED') {
-              console.log('Successfully subscribed to real-time updates');
+              console.log(`Successfully subscribed to real-time updates (ID: ${setupId})`);
               setIsSubscribed(true);
               
-              // Only show toast once per session and manage with sessionStorage
-              if (!toastShownRef.current && !sessionStorage.getItem('realtime_toast_shown')) {
+              // Only show toast once per session using session storage
+              if (!hasShownToast()) {
                 toast.success('Real-time updates activated');
-                toastShownRef.current = true;
-                sessionStorage.setItem('realtime_toast_shown', 'true');
-                
-                // Clear the toast shown flag after 1 hour
-                clearToastTimeout();
-                toastTimeoutRef.current = window.setTimeout(() => {
-                  sessionStorage.removeItem('realtime_toast_shown');
-                  toastShownRef.current = false;
-                }, 60 * 60 * 1000); // 1 hour
+                markToastShown();
               }
             } else if (status === REALTIME_SUBSCRIBE_STATES.TIMED_OUT) {
               console.error('Subscription timed out');
               setIsSubscribed(false);
-              toast.error('Real-time updates timed out');
               sessionStorage.removeItem('realtime_toast_shown');
-              toastShownRef.current = false;
             } else if (status === REALTIME_SUBSCRIBE_STATES.CLOSED) {
               console.error('Subscription closed');
               setIsSubscribed(false);
               sessionStorage.removeItem('realtime_toast_shown');
-              toastShownRef.current = false;
             } else if (status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR) {
               console.error('Channel error occurred');
               setIsSubscribed(false);
               toast.error('Connection error with real-time service');
               sessionStorage.removeItem('realtime_toast_shown');
-              toastShownRef.current = false;
               
               // Try to reconnect in 5 seconds
               setTimeout(() => {
-                setupSubscription();
+                if (document.visibilityState !== 'hidden') {
+                  console.log('Attempting to reconnect after error...');
+                  setupSubscription();
+                }
               }, 5000);
             }
           });
         
         channelRef.current = channel;
-        console.log('Real-time subscription setup complete', channel);
+        console.log(`Real-time subscription setup complete (ID: ${setupId})`, channel);
       } catch (err) {
-        console.error('Error setting up real-time subscription:', err);
+        console.error(`Error setting up real-time subscription (ID: ${setupId}):`, err);
         toast.error('Failed to set up real-time updates');
         setIsSubscribed(false);
         sessionStorage.removeItem('realtime_toast_shown');
-        toastShownRef.current = false;
       }
     };
 
-    setupSubscription();
+    // Only set up subscription if document is visible
+    if (document.visibilityState !== 'hidden') {
+      setupSubscription();
+    }
+    
+    // Handle visibility changes to reconnect when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !channelRef.current) {
+        console.log('Tab became visible, setting up real-time subscription...');
+        setupSubscription();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
-      clearToastTimeout();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       removeSubscription();
     };
   }, [onNewReservation, onReservationUpdate, onReservationDelete]);

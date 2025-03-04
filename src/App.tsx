@@ -36,12 +36,18 @@ function App() {
       console.log('Mobile viewport meta tag updated for better responsiveness');
     };
     
-    // Run viewport update
+    // Run viewport update once
     updateViewport();
     
     // Apply some base styles to ensure proper mobile rendering
     const applyMobileStyles = () => {
+      // Check if styles already applied to avoid duplicates
+      if (document.getElementById('mobile-base-styles')) {
+        return;
+      }
+      
       const style = document.createElement('style');
+      style.id = 'mobile-base-styles';
       style.textContent = `
         @media (max-width: 768px) {
           body {

@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { logoutAdmin } from '../utils/api';
@@ -34,6 +34,9 @@ const Dashboard: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
+  // Prevent useEffect from running twice in development
+  const effectRan = useRef(false);
+  
   // Filters state
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusType>('All');
@@ -57,9 +60,9 @@ const Dashboard: React.FC = () => {
     lastRefreshTime
   } = useReservations();
 
-  // Set up realtime subscription
+  // Set up realtime subscription with memoized callbacks to prevent recreating the subscription
   const { isSubscribed } = useRealtimeSubscription({
-    onNewReservation: (newReservation) => {
+    onNewReservation: useCallback((newReservation) => {
       handleNewReservation(newReservation);
       
       // Send notification
@@ -74,14 +77,21 @@ const Dashboard: React.FC = () => {
       } catch (notifError) {
         console.error('Failed to send push notification:', notifError);
       }
-    },
-    onReservationUpdate: handleReservationUpdate,
-    onReservationDelete: handleReservationDelete
+    }, [handleNewReservation]),
+    onReservationUpdate: useCallback(handleReservationUpdate, [handleReservationUpdate]),
+    onReservationDelete: useCallback(handleReservationDelete, [handleReservationDelete])
   });
 
-  // Component mount tracking
+  // Component mount tracking with additional safeguards
   useEffect(() => {
-    console.log("Dashboard component MOUNTED");
+    // In development React will run effects twice, which can cause issues
+    // This check prevents double execution in development
+    if (effectRan.current === true && process.env.NODE_ENV !== 'production') {
+      console.log("Skipping duplicate effect execution in development");
+      return;
+    }
+    
+    console.log("Dashboard component MOUNTED (effect executed once)");
     setIsMounted(true);
     
     // Force layout recalculation on mobile
@@ -98,23 +108,36 @@ const Dashboard: React.FC = () => {
     };
     
     forceReflow();
-    window.addEventListener('resize', forceReflow);
+    const resizeHandler = debounce(forceReflow, 250); // Debounce for performance
+    window.addEventListener('resize', resizeHandler);
     
     return () => {
       console.log("Dashboard component UNMOUNTED");
+      effectRan.current = true; // Mark that the effect has run
       setIsMounted(false);
-      window.removeEventListener('resize', forceReflow);
+      window.removeEventListener('resize', resizeHandler);
     };
   }, []);
 
-  // Fetch data after authentication is confirmed
+  // Fetch data after authentication is confirmed - with safeguards against multiple fetches
+  const dataFetchedRef = useRef(false);
+  
   useEffect(() => {
-    if (isMounted && !isChecking && isAuth) {
-      console.log("Authentication confirmed, fetching data...");
-      fetchData().catch(err => {
-        console.error("Error during initial data fetch:", err);
-      });
+    if (!isMounted || isChecking || !isAuth) return;
+    
+    // Prevent multiple fetches
+    if (dataFetchedRef.current) {
+      console.log("Data already fetched, skipping duplicate fetch");
+      return;
     }
+    
+    console.log("Authentication confirmed, fetching data ONCE...");
+    dataFetchedRef.current = true;
+    
+    fetchData().catch(err => {
+      console.error("Error during initial data fetch:", err);
+      dataFetchedRef.current = false; // Reset on error to allow retry
+    });
   }, [isMounted, isChecking, isAuth, fetchData]);
 
   // Set up a loading timeout
@@ -201,24 +224,28 @@ const Dashboard: React.FC = () => {
     return numDay > 0 && numDay <= daysInMonth;
   };
 
-  // Filter and sort reservations
-  const filteredReservations = reservations.filter(res => {
-    const matchesSearch = 
-      res.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      res.phone.includes(searchQuery);
-    
-    const matchesStatus = statusFilter === 'All' || res.status === statusFilter;
-    const matchesDate = !dateFilter || res.date === dateFilter;
-    
-    return matchesSearch && matchesStatus && matchesDate;
-  });
+  // Filter and sort reservations - memoized to prevent unnecessary calculations
+  const filteredReservations = React.useMemo(() => {
+    return reservations.filter(res => {
+      const matchesSearch = 
+        res.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        res.phone.includes(searchQuery);
+      
+      const matchesStatus = statusFilter === 'All' || res.status === statusFilter;
+      const matchesDate = !dateFilter || res.date === dateFilter;
+      
+      return matchesSearch && matchesStatus && matchesDate;
+    });
+  }, [reservations, searchQuery, statusFilter, dateFilter]);
 
-  const sortedReservations = [...filteredReservations].sort((a, b) => {
-    const dateA = parseDate(a.date);
-    const dateB = parseDate(b.date);
-    
-    return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
-  });
+  const sortedReservations = React.useMemo(() => {
+    return [...filteredReservations].sort((a, b) => {
+      const dateA = parseDate(a.date);
+      const dateB = parseDate(b.date);
+      
+      return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+  }, [filteredReservations, sortBy]);
 
   function parseDate(dateStr: string): number {
     if (!dateStr || !dateStr.includes('/')) return 0;
@@ -232,16 +259,26 @@ const Dashboard: React.FC = () => {
     }
   }
 
-  // Calculate stats
-  const totalReservations = reservations.length;
-  const confirmedReservations = reservations.filter(r => r.status === 'Confirmed').length;
-  const pendingReservations = reservations.filter(r => r.status === 'Pending').length;
-  const canceledReservations = reservations.filter(r => r.status === 'Canceled').length;
-  
-  // Compute confirmation rate
-  const confirmationRate = totalReservations > 0 
-    ? Math.round((confirmedReservations / totalReservations) * 100) 
-    : 0;
+  // Calculate stats - memoized to prevent recalculations
+  const stats = React.useMemo(() => {
+    const totalReservations = reservations.length;
+    const confirmedReservations = reservations.filter(r => r.status === 'Confirmed').length;
+    const pendingReservations = reservations.filter(r => r.status === 'Pending').length;
+    const canceledReservations = reservations.filter(r => r.status === 'Canceled').length;
+    
+    // Compute confirmation rate
+    const confirmationRate = totalReservations > 0 
+      ? Math.round((confirmedReservations / totalReservations) * 100) 
+      : 0;
+      
+    return {
+      totalReservations,
+      confirmedReservations,
+      pendingReservations,
+      canceledReservations,
+      confirmationRate
+    };
+  }, [reservations]);
 
   // Format last refresh time
   const formattedLastRefreshTime = lastRefreshTime 
@@ -309,25 +346,25 @@ const Dashboard: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatsCard 
               title="Total Reservations" 
-              value={totalReservations} 
+              value={stats.totalReservations} 
               icon={CalendarDays}
               iconColor="text-purple-600"
             />
             <StatsCard 
               title="Confirmed" 
-              value={confirmedReservations} 
+              value={stats.confirmedReservations} 
               icon={BadgeCheck}
               iconColor="text-green-600"
             />
             <StatsCard 
               title="Pending" 
-              value={pendingReservations} 
+              value={stats.pendingReservations} 
               icon={Calendar}
               iconColor="text-yellow-600"
             />
             <StatsCard 
               title="Confirmation Rate" 
-              value={`${confirmationRate}%`} 
+              value={`${stats.confirmationRate}%`} 
               icon={Users}
               iconColor="text-blue-600"
               change={{

@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { fetchReservations, updateReservation, Reservation } from '../utils/api';
@@ -10,6 +9,8 @@ export const useReservations = () => {
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
   const refreshIntervalRef = useRef<number | null>(null);
   const updatingReservationsRef = useRef<Set<string>>(new Set()); // Track reservations being updated
+  const isMountedRef = useRef(true); // Track if component is mounted
+  const fetchInProgressRef = useRef(false); // Prevent concurrent fetches
 
   const clearRefreshInterval = () => {
     if (refreshIntervalRef.current) {
@@ -19,14 +20,41 @@ export const useReservations = () => {
     }
   };
 
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      clearRefreshInterval();
+    };
+  }, []);
+
   const fetchData = useCallback(async () => {
+    // Skip if fetch already in progress
+    if (fetchInProgressRef.current) {
+      console.log("FETCH: Already fetching data, skipping duplicate request");
+      return;
+    }
+    
+    // Skip if component is unmounted
+    if (!isMountedRef.current) {
+      console.log("FETCH: Component unmounted, skipping fetch");
+      return;
+    }
+    
     console.log("FETCH: Starting reservation data fetch...");
+    fetchInProgressRef.current = true;
     setLoading(true);
     setError(null);
 
     try {
       const result = await fetchReservations();
       console.log("FETCH: Reservation data received:", result);
+      
+      // Skip update if component unmounted during fetch
+      if (!isMountedRef.current) {
+        console.log("FETCH: Component unmounted during fetch, skipping state update");
+        return;
+      }
       
       if (result.success) {
         // Store the current updating IDs before updating state
@@ -73,33 +101,55 @@ export const useReservations = () => {
         throw err; // Re-throw for handling by the auth system
       }
       
-      setError('Network error. Please try again.');
-      toast.error('Network error. Please try again.');
+      if (isMountedRef.current) {
+        setError('Network error. Please try again.');
+        toast.error('Network error. Please try again.');
+      }
     } finally {
       console.log("FETCH: Completed fetch process, setting loading to false");
-      setLoading(false);
+      fetchInProgressRef.current = false;
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [reservations]);
 
   // Auto-refresh data every 5 minutes when component is mounted
   useEffect(() => {
     // Initial fetch
-    fetchData().catch(err => {
-      console.error("Error during initial fetch:", err);
-    });
+    if (isMountedRef.current && !fetchInProgressRef.current) {
+      fetchData().catch(err => {
+        console.error("Error during initial fetch:", err);
+      });
+    }
     
     // Set up interval for auto-refresh
     clearRefreshInterval(); // Clear any existing interval
     
     refreshIntervalRef.current = window.setInterval(() => {
-      console.log("Performing auto-refresh of reservation data");
-      fetchData().catch(err => {
-        console.error("Error during auto-refresh:", err);
-      });
+      if (isMountedRef.current && !fetchInProgressRef.current && document.visibilityState !== 'hidden') {
+        console.log("Performing auto-refresh of reservation data");
+        fetchData().catch(err => {
+          console.error("Error during auto-refresh:", err);
+        });
+      }
     }, 5 * 60 * 1000); // 5 minutes
+    
+    // Handle visibility changes to avoid refresh when tab is not visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isMountedRef.current && !fetchInProgressRef.current) {
+        console.log("Tab became visible, refreshing data");
+        fetchData().catch(err => {
+          console.error("Error during visibility refresh:", err);
+        });
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       clearRefreshInterval();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [fetchData]);
 
@@ -224,7 +274,6 @@ export const useReservations = () => {
     }
   };
 
-  // Handlers for realtime updates
   const handleNewReservation = useCallback((newReservation: Reservation) => {
     console.log('Received new reservation via realtime:', newReservation);
     
@@ -274,7 +323,6 @@ export const useReservations = () => {
     });
   }, []);
 
-  // Handle reservation deletion from realtime
   const handleReservationDelete = useCallback((deletedId: string) => {
     console.log('Received reservation deletion via realtime:', deletedId);
     
@@ -295,25 +343,45 @@ export const useReservations = () => {
     });
   }, []);
 
-  // Manual refresh function that resets the auto-refresh timer
   const refreshData = useCallback(async () => {
     console.log("Manual refresh requested, resetting auto-refresh timer");
+    
+    // Skip if component unmounted
+    if (!isMountedRef.current) {
+      console.log("REFRESH: Component unmounted, skipping refresh");
+      return false;
+    }
+    
+    // Skip if fetch already in progress
+    if (fetchInProgressRef.current) {
+      console.log("REFRESH: Already fetching data, skipping duplicate request");
+      return false;
+    }
     
     // Clear existing interval and set a new one
     clearRefreshInterval();
     
     // Fetch data immediately
-    await fetchData();
-    
-    // Set up new interval
-    refreshIntervalRef.current = window.setInterval(() => {
-      console.log("Performing auto-refresh of reservation data");
-      fetchData().catch(err => {
-        console.error("Error during auto-refresh:", err);
-      });
-    }, 5 * 60 * 1000); // 5 minutes
-    
-    return true; // Indicate success
+    try {
+      await fetchData();
+      
+      // Set up new interval (only if component still mounted)
+      if (isMountedRef.current) {
+        refreshIntervalRef.current = window.setInterval(() => {
+          if (isMountedRef.current && !fetchInProgressRef.current && document.visibilityState !== 'hidden') {
+            console.log("Performing auto-refresh of reservation data");
+            fetchData().catch(err => {
+              console.error("Error during auto-refresh:", err);
+            });
+          }
+        }, 5 * 60 * 1000); // 5 minutes
+      }
+      
+      return true; // Indicate success
+    } catch (error) {
+      console.error("Error during manual refresh:", error);
+      return false;
+    }
   }, [fetchData]);
 
   return {
