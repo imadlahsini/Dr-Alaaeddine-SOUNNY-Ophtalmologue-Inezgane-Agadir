@@ -1,16 +1,26 @@
 
 import React from 'react';
 import { Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const LoadingState: React.FC = () => {
   return (
-    <div className="flex flex-col justify-center items-center min-h-[60vh] p-4 text-center">
-      <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-      <span className="text-lg font-medium">Loading reservations...</span>
-      <p className="text-sm text-gray-500 mt-2">
-        Please wait while we load your dashboard
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="flex flex-col justify-center items-center min-h-[calc(100vh-6rem)] p-4 text-center"
+    >
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+      >
+        <Loader2 className="h-12 w-12 text-primary" />
+      </motion.div>
+      <h3 className="text-xl font-medium mt-6 text-gray-800">Loading reservations...</h3>
+      <p className="text-gray-500 mt-2 max-w-md">
+        Please wait while we retrieve your restaurant's reservation data
       </p>
-    </div>
+    </motion.div>
   );
 };
 

@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { CalendarX } from 'lucide-react';
+import { CalendarX, RefreshCw } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface EmptyStateProps {
   onRefresh: () => void;
@@ -8,16 +9,28 @@ interface EmptyStateProps {
 
 const EmptyState: React.FC<EmptyStateProps> = ({ onRefresh }) => {
   return (
-    <div className="mt-8 text-center p-8 bg-white rounded-lg shadow-sm border border-gray-100">
-      <CalendarX className="h-10 w-10 text-gray-400 mx-auto mb-4" />
-      <p className="text-lg text-gray-600 mb-4">No reservations found.</p>
-      <button 
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col items-center justify-center p-10 mt-12 bg-white rounded-xl shadow-sm border border-gray-100 max-w-md mx-auto"
+    >
+      <div className="p-4 bg-primary/10 rounded-full">
+        <CalendarX className="h-12 w-12 text-primary" />
+      </div>
+      <h3 className="text-xl font-semibold mt-6 text-gray-800">No reservations yet</h3>
+      <p className="text-center text-gray-500 mt-3">
+        You don't have any reservations in your system yet. They will appear here once customers start booking tables.
+      </p>
+      <motion.button 
         onClick={onRefresh}
-        className="bg-primary hover:bg-primary/90 text-white font-bold py-2 px-6 rounded-full focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+        className="mt-6 px-6 py-3 bg-primary text-white rounded-full font-medium flex items-center shadow-md hover:shadow-lg"
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.97 }}
       >
-        Refresh
-      </button>
-    </div>
+        <RefreshCw className="h-4 w-4 mr-2" />
+        Refresh Data
+      </motion.button>
+    </motion.div>
   );
 };
 

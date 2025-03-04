@@ -123,6 +123,39 @@
   .language-option img {
     @apply mr-3 sm:mr-4 w-7 h-7 sm:w-[40px] sm:h-[40px] rounded-full;
   }
+  
+  /* Dashboard specific components */
+  .stat-card {
+    @apply bg-white rounded-xl p-5 shadow-sm border border-gray-100;
+  }
+  
+  .dashboard-panel {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-5;
+  }
+  
+  .dashboard-button {
+    @apply px-4 py-2 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-primary/30;
+  }
+  
+  .dashboard-button-secondary {
+    @apply px-4 py-2 bg-gray-100 text-gray-700 rounded-full font-medium hover:bg-gray-200 transition-colors;
+  }
+  
+  .dashboard-card {
+    @apply bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200;
+  }
+  
+  .dashboard-card-header {
+    @apply flex justify-between items-center px-5 py-4 bg-gray-50 border-b border-gray-100;
+  }
+  
+  .dashboard-card-body {
+    @apply p-5;
+  }
+  
+  .dashboard-card-footer {
+    @apply border-t border-gray-100 px-5 py-3;
+  }
 }
 
 @keyframes slide-up {

@@ -27,7 +27,7 @@ function App() {
         <Route path="/telegram-config" element={<TelegramConfig />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <Toaster position="top-center" richColors />
+      <Toaster position="top-center" richColors expandByDefault />
     </Router>
   );
 }
