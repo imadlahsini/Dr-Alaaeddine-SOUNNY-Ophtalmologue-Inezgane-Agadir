@@ -38,13 +38,13 @@ export const sendTelegramNotification = async (
       };
     }
 
-    console.log("Sending notification via Supabase Edge Function:", reservationData);
+    console.log("Sending notification via Supabase Edge Function:", JSON.stringify(reservationData));
     
     // Call the Supabase Edge Function with proper parameters
     const startTime = Date.now();
     
     const { data, error } = await supabase.functions.invoke("send-telegram", {
-      body: reservationData,
+      body: JSON.stringify(reservationData),
       headers: {
         'Content-Type': 'application/json',
       }
@@ -90,7 +90,7 @@ export const checkTelegramConfig = async (): Promise<{
 }> => {
   try {
     const { data, error } = await supabase.functions.invoke("send-telegram", {
-      body: { checkConfig: true },
+      body: JSON.stringify({ checkConfig: true }),
       headers: {
         'Content-Type': 'application/json',
       }
