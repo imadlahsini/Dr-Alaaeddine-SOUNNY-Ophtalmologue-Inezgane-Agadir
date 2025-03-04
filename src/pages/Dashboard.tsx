@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -235,7 +234,7 @@ const Dashboard: React.FC = () => {
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             statusFilter={statusFilter}
-            setStatusFilter={setStatusFilter}
+            setStatusFilter={(status: 'All' | 'Pending' | 'Confirmed' | 'Canceled' | 'Not Responding') => setStatusFilter(status)}
             sortBy={sortBy}
             setSortBy={setSortBy}
             dateFilter={dateFilter}

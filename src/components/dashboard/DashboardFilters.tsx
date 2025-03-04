@@ -6,8 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface DashboardFiltersProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  statusFilter: string;
-  setStatusFilter: (status: string) => void;
+  statusFilter: 'All' | 'Pending' | 'Confirmed' | 'Canceled' | 'Not Responding';
+  setStatusFilter: (status: 'All' | 'Pending' | 'Confirmed' | 'Canceled' | 'Not Responding') => void;
   sortBy: 'newest' | 'oldest';
   setSortBy: (sort: 'newest' | 'oldest') => void;
   dateFilter: string | null;
