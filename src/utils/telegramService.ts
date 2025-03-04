@@ -62,9 +62,7 @@ export const sendTelegramNotification = async (
     }
     
     // Call the Supabase Edge Function with proper parameters
-    const startTime = Date.now();
-    
-    console.log("Invoking edge function with content type:", 'application/json');
+    console.log("Calling simplified Telegram notification Edge Function");
     const { data, error } = await supabase.functions.invoke("send-telegram", {
       body: payload,
       headers: {
@@ -72,15 +70,11 @@ export const sendTelegramNotification = async (
       }
     });
     
-    const endTime = Date.now();
-    console.log(`Edge function call completed in ${endTime - startTime}ms`);
-    
     if (error) {
       console.error("Error calling Supabase Edge Function:", error);
       return {
         success: false, 
-        message: error.message || "Error sending notification",
-        needsConfiguration: error.message?.includes("not configured") || false
+        message: error.message || "Error sending notification"
       };
     }
     
@@ -89,16 +83,14 @@ export const sendTelegramNotification = async (
     // Return the result from the Edge Function
     return {
       success: !!data?.success,
-      message: data?.message || "Unknown response from notification service",
-      needsConfiguration: !!data?.needsConfiguration
+      message: data?.message || "Unknown response from notification service"
     };
   } catch (error) {
     console.error("Error sending Telegram notification:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      message: errorMessage || "Unknown error",
-      needsConfiguration: errorMessage.includes("not configured") || false
+      message: errorMessage || "Unknown error"
     };
   }
 };

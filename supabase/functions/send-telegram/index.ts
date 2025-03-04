@@ -31,13 +31,12 @@ serve(async (req) => {
       headers: Object.fromEntries(req.headers.entries()),
     });
 
-    // Get the Telegram bot token and chat ID from environment variables
-    const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN") || "7568197664:AAH42WusrtFjIZv3DjUfAAzz4jBLdqseD2k";
-    const chatId = Deno.env.get("TELEGRAM_CHAT_ID") || "6024686458";
+    // Use the hardcoded bot token and chat ID as specified by the user
+    const botToken = "7568197664:AAH42WusrtFjIZv3DjUfAAzz4jBLdqseD2k";
+    const chatId = "6024686458";
 
-    console.log("Request received for send-telegram function");
-    console.log("Bot token configured:", !!botToken);
-    console.log("Chat ID configured:", chatId);
+    console.log("Using bot token:", botToken.substring(0, 10) + "...");
+    console.log("Using chat ID:", chatId);
 
     // Parse request body with robust error handling
     let data: TelegramRequest | null = null;
@@ -49,40 +48,32 @@ serve(async (req) => {
       
       console.log("Raw request body length:", bodyText?.length || 0);
       if (bodyText && bodyText.length > 0) {
-        // Only log a preview if body exists and is not empty
         console.log("Raw request body preview:", bodyText.substring(0, Math.min(500, bodyText.length)));
       } else {
         console.error("Empty or null request body detected");
         throw new Error("Empty request body");
       }
       
-      // Try to parse JSON with additional safeguards
-      try {
-        if (bodyText.trim() === '') {
-          throw new Error("Empty request body");
-        }
-        
-        data = JSON.parse(bodyText);
-        
-        // Validate that data was parsed correctly
-        if (data === null || typeof data !== 'object') {
-          throw new Error("Parsed data is not an object");
-        }
-        
-        console.log("Parsed request data:", JSON.stringify(data));
-      } catch (jsonError) {
-        console.error("JSON parse error:", jsonError);
-        console.error("Failed to parse body:", bodyText);
-        throw new Error(`Invalid JSON: ${jsonError.message}`);
+      // Try to parse JSON
+      if (bodyText.trim() === '') {
+        throw new Error("Empty request body");
       }
+      
+      data = JSON.parse(bodyText);
+      
+      // Validate that data was parsed correctly
+      if (data === null || typeof data !== 'object') {
+        throw new Error("Parsed data is not an object");
+      }
+      
+      console.log("Parsed request data:", JSON.stringify(data));
     } catch (parseError) {
       console.error("Error parsing request body:", parseError);
       return new Response(
         JSON.stringify({
           success: false,
           message: `Request parsing error: ${parseError.message}`,
-          needsConfiguration: false,
-          bodyPreview: bodyText ? bodyText.substring(0, 100) + "..." : "empty",
+          bodyPreview: bodyText ? bodyText.substring(0, 100) + "..." : "empty"
         }),
         {
           status: 400,
@@ -98,7 +89,7 @@ serve(async (req) => {
         JSON.stringify({
           success: true,
           message: "Configuration check completed",
-          configured: !!botToken
+          configured: true
         }),
         {
           status: 200,
@@ -119,13 +110,11 @@ serve(async (req) => {
       }
       
       console.error("Invalid data provided. Missing fields:", missingFields.join(", "));
-      console.error("Received data:", data ? JSON.stringify(data) : "null");
       
       return new Response(
         JSON.stringify({
           success: false,
-          message: `Invalid data provided. Missing fields: ${missingFields.join(", ")}`,
-          needsConfiguration: false,
+          message: `Invalid data provided. Missing fields: ${missingFields.join(", ")}`
         }),
         {
           status: 400,
@@ -136,114 +125,62 @@ serve(async (req) => {
 
     // Format the message
     const message = `
-<b>🎉 New Reservation!</b>
+🎉 New Reservation!
 
-<b>👤 Name:</b> ${data.name}
-<b>📱 Phone:</b> ${data.phone}
-<b>📅 Date:</b> ${data.date}
-<b>⏰ Time:</b> ${data.timeSlot}
+👤 Name: ${data.name}
+📱 Phone: ${data.phone}
+📅 Date: ${data.date}
+⏰ Time: ${data.timeSlot}
 
-<i>This reservation is currently pending confirmation.</i>
+This reservation is currently pending confirmation.
 `;
 
-    // Send message to Telegram
-    const apiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
-    console.log(`Sending Telegram notification to chat ID: ${chatId}`);
-    console.log("Message content:", message.substring(0, 100) + "...");
+    // Directly use the Telegram API URL as requested by the user
+    const encodedMessage = encodeURIComponent(message);
+    const telegramApiUrl = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodedMessage}&parse_mode=HTML`;
     
-    // Implement retry logic (up to 3 attempts)
-    let attempt = 0;
-    let success = false;
-    let lastError = null;
-    let responseText = "";
+    console.log("Using direct Telegram API URL approach");
+    console.log("Message to send:", message.substring(0, 100) + "...");
     
-    while (attempt < 3 && !success) {
-      attempt++;
-      console.log(`Attempt ${attempt} to send Telegram notification...`);
+    try {
+      console.log("Sending request to Telegram API...");
+      const response = await fetch(telegramApiUrl);
+      const responseData = await response.json();
       
-      try {
-        // Prepare the request body for Telegram API
-        const telegramPayload = JSON.stringify({
-          chat_id: chatId,
-          text: message,
-          parse_mode: "HTML",
-        });
-        
-        console.log(`Telegram API request payload length: ${telegramPayload.length}`);
-        
-        const response = await fetch(apiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: telegramPayload,
-        });
-
-        responseText = await response.text();
-        console.log(`Telegram API raw response (${response.status}): ${responseText}`);
-        
-        let responseData;
-        try {
-          responseData = JSON.parse(responseText);
-        } catch (e) {
-          console.error("Error parsing Telegram API response:", e);
-          console.error("Raw response was:", responseText);
-          responseData = { ok: false, description: "Invalid JSON response" };
-        }
-        
-        if (response.ok && responseData.ok) {
-          success = true;
-          console.log("Telegram notification sent successfully!");
-        } else {
-          lastError = responseData.description || `HTTP Error: ${response.status}`;
-          console.error(`Failed to send Telegram notification (Attempt ${attempt}):`, lastError);
-          
-          // If it's an authentication error, don't retry
-          if (responseData.error_code === 401) {
-            console.error("Authentication error with Telegram API. Won't retry.");
-            break;
+      console.log("Telegram API response:", JSON.stringify(responseData));
+      
+      if (response.ok && responseData.ok) {
+        console.log("Message sent successfully!");
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "Telegram notification sent successfully"
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
-          
-          // Add a small delay before retrying
-          if (attempt < 3) {
-            console.log(`Waiting before retry attempt ${attempt + 1}...`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
+        );
+      } else {
+        console.error("Failed to send message:", responseData);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: `Failed to send message: ${responseData.description || "Unknown error"}`,
+            telegramResponse: responseData
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
-        }
-      } catch (error) {
-        lastError = error.message || "Network error";
-        console.error(`Error during Telegram API request (Attempt ${attempt}):`, error);
-        
-        // Add a small delay before retrying
-        if (attempt < 3) {
-          console.log(`Waiting before retry attempt ${attempt + 1}...`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+        );
       }
-    }
-
-    // Return the result
-    if (success) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: "Telegram notification sent successfully",
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    } else {
-      console.error(`Failed to send Telegram notification after ${attempt} attempts: ${lastError}`);
-      console.error("Last API response:", responseText);
-      
+    } catch (error) {
+      console.error("Error sending Telegram message:", error);
       return new Response(
         JSON.stringify({
           success: false,
-          message: `Failed to send Telegram notification after ${attempt} attempts: ${lastError}`,
-          needsConfiguration: lastError?.includes("401") || false,
-          lastResponse: responseText.substring(0, 200) + "...",
+          message: `Error sending Telegram message: ${error instanceof Error ? error.message : String(error)}`
         }),
         {
           status: 500,
@@ -256,8 +193,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        message: error instanceof Error ? error.message : "Unknown error",
-        needsConfiguration: false,
+        message: error instanceof Error ? error.message : "Unknown error"
       }),
       {
         status: 500,
