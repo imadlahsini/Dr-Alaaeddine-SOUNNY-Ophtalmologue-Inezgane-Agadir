@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import TimeSlotSelector from './TimeSlotSelector';
 import { sendTelegramNotification } from '../utils/telegramService';
-import { createReservation, USE_FALLBACK } from '../utils/api';
+import { createReservation } from '../utils/api';
 
 const translations = {
   fr: {

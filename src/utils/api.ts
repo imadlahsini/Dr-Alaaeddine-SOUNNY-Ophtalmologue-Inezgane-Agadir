@@ -1,26 +1,18 @@
-
 /**
- * API configuration and utility functions for database operations
+ * API configuration and utility functions using Supabase
  */
+import { createClient } from '@supabase/supabase-js';
 
-// Base API URL - update to match the actual domain where PHP files are hosted
-// THIS IS CRITICAL - This URL must be changed to your actual API URL without a trailing slash
-export const API_BASE_URL = 'https://sounny.ma';
+// Supabase configuration
+const SUPABASE_URL = 'https://jyppxlopcvcwrlmrsoan.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5cHB4bG9wY3Zjd3JsbXJzb2FuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEwOTQzNzMsImV4cCI6MjA1NjY3MDM3M30.4tkr_79mOojlbF4WtX8KEgATQ-ftJMW5plYgMDVYmpI';
 
-// Use JSON files as fallback for when the server is unreachable
-export const USE_FALLBACK = false;
-
-// API endpoints
-export const ENDPOINTS = {
-  CREATE_RESERVATION: '/api/reservations/create.php',
-  LIST_RESERVATIONS: '/api/reservations/list.php',
-  UPDATE_RESERVATION: '/api/reservations/update.php',
-  AUTH_LOGIN: '/api/auth/login.php',
-};
+// Initialize Supabase client
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Types
 export interface Reservation {
-  id: number;
+  id: string;
   name: string;
   phone: string;
   date: string;
@@ -34,57 +26,42 @@ export interface LoginCredentials {
 }
 
 // API functions
-export async function createReservation(reservationData: Omit<Reservation, 'id' | 'status'>): Promise<{ success: boolean; message: string; id?: number }> {
-  console.log('Starting reservation creation process...');
+export async function createReservation(reservationData: Omit<Reservation, 'id' | 'status'>): Promise<{ success: boolean; message: string; id?: string }> {
+  console.log('Starting reservation creation process with Supabase...');
+  console.log('Reservation data:', JSON.stringify(reservationData));
   
   try {
-    const apiUrl = `${API_BASE_URL}${ENDPOINTS.CREATE_RESERVATION}`;
-    console.log('Submitting reservation to:', apiUrl);
-    console.log('Reservation data:', JSON.stringify(reservationData));
+    // Convert the timeSlot property to time_slot for Supabase
+    const { data, error } = await supabase
+      .from('reservations')
+      .insert({
+        name: reservationData.name,
+        phone: reservationData.phone,
+        date: reservationData.date,
+        time_slot: reservationData.timeSlot,
+        status: 'Pending'
+      })
+      .select();
     
-    // Create URLSearchParams for testing connectivity
-    const testUrl = new URL(apiUrl);
-    console.log('API URL is valid:', testUrl.toString());
-    
-    // Simplified fetch request with only essential options
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(reservationData),
-      // Important: Setting mode to 'cors' explicitly requests CORS handling
-      mode: 'cors',
-    });
-    
-    console.log('Response status:', response.status);
-    
-    if (!response.ok) {
-      let errorMessage = 'Server error';
-      try {
-        const errorData = await response.json();
-        console.error('API error:', errorData);
-        errorMessage = errorData.message || `Server error: ${response.status}`;
-      } catch (jsonError) {
-        console.error('Error parsing error response:', jsonError);
-        errorMessage = `Server returned ${response.status}: ${response.statusText}`;
-      }
-      throw new Error(errorMessage);
+    if (error) {
+      console.error('Supabase error:', error);
+      return { 
+        success: false, 
+        message: error.message || 'Error creating reservation' 
+      };
     }
     
-    const data = await response.json();
-    console.log('API response:', data);
-    return data;
+    console.log('Reservation created successfully:', data);
+    return { 
+      success: true, 
+      message: 'Reservation created successfully',
+      id: data?.[0]?.id
+    };
   } catch (error) {
     console.error('Error creating reservation:', error);
     
-    // Provide more detailed error message
     let errorMessage = 'Network error. Please try again.';
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      errorMessage = 'Cannot connect to the server. Please check your network connection or contact support.';
-      console.error('Connection to server failed. Make sure the API_BASE_URL is correct and the server is running.');
-    } else if (error instanceof Error) {
+    if (error instanceof Error) {
       errorMessage = `Error: ${error.message}`;
     }
     
@@ -94,21 +71,40 @@ export async function createReservation(reservationData: Omit<Reservation, 'id' 
 
 export async function fetchReservations(): Promise<{ success: boolean; data?: Reservation[]; message?: string }> {
   try {
-    // Get auth token from localStorage
+    // Get auth token from localStorage (we'll keep this for now but might change later)
     const token = localStorage.getItem('authToken');
     
     if (!token) {
       return { success: false, message: 'Not authenticated' };
     }
     
-    const response = await fetch(`${API_BASE_URL}${ENDPOINTS.LIST_RESERVATIONS}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    const { data, error } = await supabase
+      .from('reservations')
+      .select('*')
+      .order('created_at', { ascending: false });
     
-    return await response.json();
+    if (error) {
+      console.error('Supabase error:', error);
+      return { 
+        success: false, 
+        message: error.message || 'Error fetching reservations' 
+      };
+    }
+    
+    // Transform data to match the expected format
+    const transformedData = data.map(reservation => ({
+      id: reservation.id,
+      name: reservation.name,
+      phone: reservation.phone,
+      date: reservation.date,
+      timeSlot: reservation.time_slot,
+      status: reservation.status as Reservation['status']
+    }));
+    
+    return { 
+      success: true, 
+      data: transformedData 
+    };
   } catch (error) {
     console.error('Error fetching reservations:', error);
     return { success: false, message: 'Network error. Please try again.' };
@@ -116,27 +112,41 @@ export async function fetchReservations(): Promise<{ success: boolean; data?: Re
 }
 
 export async function updateReservation(
-  id: number, 
+  id: string,
   updates: Partial<Reservation>
 ): Promise<{ success: boolean; message: string }> {
   try {
-    // Get auth token from localStorage
+    // Get auth token from localStorage (we'll keep this for now but might change later)
     const token = localStorage.getItem('authToken');
     
     if (!token) {
       return { success: false, message: 'Not authenticated' };
     }
     
-    const response = await fetch(`${API_BASE_URL}${ENDPOINTS.UPDATE_RESERVATION}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ id, ...updates }),
-    });
+    // Transform updates to match Supabase column names
+    const supabaseUpdates: any = { ...updates };
+    if (updates.timeSlot) {
+      supabaseUpdates.time_slot = updates.timeSlot;
+      delete supabaseUpdates.timeSlot;
+    }
     
-    return await response.json();
+    const { error } = await supabase
+      .from('reservations')
+      .update(supabaseUpdates)
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Supabase error:', error);
+      return { 
+        success: false, 
+        message: error.message || 'Error updating reservation' 
+      };
+    }
+    
+    return { 
+      success: true, 
+      message: 'Reservation updated successfully' 
+    };
   } catch (error) {
     console.error('Error updating reservation:', error);
     return { success: false, message: 'Network error. Please try again.' };
@@ -144,16 +154,16 @@ export async function updateReservation(
 }
 
 export async function loginAdmin(credentials: LoginCredentials): Promise<{ success: boolean; token?: string; message?: string }> {
+  // For now, we'll keep this function as-is
+  // Later we can implement proper authentication using Supabase Auth
   try {
-    const response = await fetch(`${API_BASE_URL}${ENDPOINTS.AUTH_LOGIN}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(credentials),
-    });
-    
-    return await response.json();
+    // Hardcoded login for demo purposes (replace with Supabase Auth later)
+    if (credentials.username === 'admin' && credentials.password === 'password') {
+      const fakeToken = 'fake-jwt-token-' + Date.now();
+      localStorage.setItem('authToken', fakeToken);
+      return { success: true, token: fakeToken };
+    }
+    return { success: false, message: 'Invalid credentials' };
   } catch (error) {
     console.error('Error during login:', error);
     return { success: false, message: 'Network error. Please try again.' };
