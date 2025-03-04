@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import LoginForm from '../components/LoginForm';
 import { ShieldCheck, Loader2 } from 'lucide-react';
 import { getSession } from '../utils/api';
-import { isAuthenticated } from '../utils/authUtils';
+import { isAuthenticated, clearAuthState } from '../utils/authUtils';
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -24,11 +24,16 @@ const Admin = () => {
         // Then verify with Supabase for double-check
         const { data, error } = await getSession();
         
-        if (data?.session) {
+        if (error) {
+          console.error('Session check error:', error);
+          clearAuthState();
+        } else if (data?.session) {
           navigate('/dashboard');
+          return;
         }
       } catch (error) {
         console.error('Error checking auth:', error);
+        clearAuthState();
       } finally {
         setIsLoading(false);
       }

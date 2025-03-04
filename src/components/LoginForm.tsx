@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, Mail, LogIn, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { loginAdmin } from '../utils/api';
+import { setAuthState } from '../utils/authUtils';
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -27,14 +27,8 @@ const LoginForm = () => {
       const result = await loginAdmin(credentials);
       
       if (result.success) {
-        // Store authentication status in both localStorage and sessionStorage for better mobile support
-        localStorage.setItem('isAuthenticated', 'true');
-        sessionStorage.setItem('isAuthenticated', 'true');
-        
-        // Add timestamp for session expiry check
-        const expiryTime = Date.now() + (24 * 60 * 60 * 1000); // 24 hours from now
-        localStorage.setItem('authExpiry', expiryTime.toString());
-        sessionStorage.setItem('authExpiry', expiryTime.toString());
+        // Use our centralized authentication utility
+        setAuthState();
         
         toast.success('Login successful!');
         navigate('/dashboard');

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -16,9 +15,9 @@ import {
 } from '../utils/api';
 import { supabase } from '../integrations/supabase/client';
 import { 
-  sendReservationNotification,
-  initializeNotifications 
+  sendReservationNotification
 } from '../utils/pushNotificationService';
+import { isAuthenticated, setAuthState, clearAuthState } from '../utils/authUtils';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -26,42 +25,61 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const realtimeChannelRef = useRef<any>(null);
+  const authCheckedRef = useRef(false);
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data, error } = await getSession();
-        
-        if (error || !data.session) {
+        // Quick check first using local storage to prevent flicker
+        if (!isAuthenticated()) {
+          console.log('Not authenticated based on local storage check');
           toast.error('Session expired. Please login again.');
           navigate('/admin');
           return;
         }
         
-        // Set authenticated status in both localStorage and sessionStorage for better mobile support
-        localStorage.setItem('isAuthenticated', 'true');
-        sessionStorage.setItem('isAuthenticated', 'true');
+        // Then verify with Supabase
+        const { data, error } = await getSession();
         
-        // Initialize notifications after confirming admin status
-        await initializeNotifications();
+        if (error) {
+          console.error('Session error:', error);
+          toast.error('Authentication error. Please login again.');
+          clearAuthState();
+          navigate('/admin');
+          return;
+        }
         
-        await fetchData();
+        if (!data.session) {
+          console.log('No active session found in Supabase check');
+          toast.error('Session expired. Please login again.');
+          clearAuthState();
+          navigate('/admin');
+          return;
+        }
         
-        setupRealtimeSubscription();
+        // Renew authentication status
+        setAuthState();
+        
+        if (!authCheckedRef.current) {
+          authCheckedRef.current = true;
+          await fetchData();
+          setupRealtimeSubscription();
+        }
       } catch (err) {
         console.error('Auth check error:', err);
         toast.error('Authentication error. Please login again.');
+        clearAuthState();
         navigate('/admin');
       }
     };
     
     checkAuth();
     
+    const intervalId = setInterval(checkAuth, 5 * 60 * 1000); // Check auth every 5 minutes
+    
     return () => {
+      clearInterval(intervalId);
       removeRealtimeSubscription();
-      // Clean up both storage mechanisms when unmounting
-      localStorage.removeItem('isAuthenticated');
-      sessionStorage.removeItem('isAuthenticated');
     };
   }, [navigate]);
 
@@ -231,6 +249,13 @@ const Dashboard: React.FC = () => {
       if (result.success) {
         setReservations(result.data || []);
       } else {
+        if (result.message === 'Not authenticated') {
+          clearAuthState();
+          toast.error('Your session has expired. Please login again.');
+          navigate('/admin');
+          return;
+        }
+        
         setError(result.message || 'Failed to fetch reservations');
         toast.error(result.message || 'Failed to fetch reservations');
       }
@@ -279,20 +304,23 @@ const Dashboard: React.FC = () => {
 
   const handleLogout = async () => {
     try {
+      removeRealtimeSubscription();
+      
       const result = await logoutAdmin();
+      clearAuthState();
+      
       if (result.success) {
-        // Clear both storage mechanisms on logout
-        localStorage.removeItem('isAuthenticated');
-        sessionStorage.removeItem('isAuthenticated');
-        
         toast.success('Logged out successfully');
-        navigate('/admin');
       } else {
-        toast.error(result.message || 'Logout failed');
+        toast.error(result.message || 'Logout failed, but local session cleared');
       }
+      
+      navigate('/admin');
     } catch (err) {
       console.error('Error during logout:', err);
-      toast.error('Network error. Please try again.');
+      clearAuthState();
+      toast.error('Error during logout, but local session cleared');
+      navigate('/admin');
     }
   };
 
