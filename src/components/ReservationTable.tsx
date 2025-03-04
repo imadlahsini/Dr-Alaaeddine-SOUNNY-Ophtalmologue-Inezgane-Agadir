@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import ReservationCard from './ReservationCard';
 
 interface Reservation {
-  id: number;
+  id: string;
   name: string;
   phone: string;
   date: string;
@@ -15,8 +14,8 @@ interface Reservation {
 
 interface ReservationTableProps {
   reservations: Reservation[];
-  onStatusChange: (id: number, status: Reservation['status']) => void;
-  onUpdate: (id: number, updatedData: Partial<Reservation>) => void;
+  onStatusChange: (id: string, status: Reservation['status']) => void;
+  onUpdate: (id: string, updatedData: Partial<Reservation>) => void;
 }
 
 const ReservationTable: React.FC<ReservationTableProps> = ({
@@ -29,7 +28,6 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
   const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Filter reservations based on search query and status
   const filteredReservations = reservations.filter(res => {
     const matchesSearch = 
       res.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -40,7 +38,6 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
     return matchesSearch && matchesStatus;
   });
 
-  // Sort reservations
   const sortedReservations = [...filteredReservations].sort((a, b) => {
     const dateA = parseDate(a.date);
     const dateB = parseDate(b.date);
@@ -48,7 +45,6 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
     return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
   });
 
-  // Helper function to parse DD/MM/YYYY date format
   function parseDate(dateStr: string): number {
     const [day, month, year] = dateStr.split('/').map(Number);
     return new Date(year, month - 1, day).getTime();

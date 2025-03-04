@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Clock, User, Phone, CheckCircle, XCircle, AlertCircle, Edit, Save, X } from 'lucide-react';
 
 interface Reservation {
-  id: number;
+  id: string;
   name: string;
   phone: string;
   date: string;
@@ -14,8 +13,8 @@ interface Reservation {
 
 interface ReservationCardProps {
   reservation: Reservation;
-  onStatusChange: (id: number, status: Reservation['status']) => void;
-  onUpdate: (id: number, updatedData: Partial<Reservation>) => void;
+  onStatusChange: (id: string, status: Reservation['status']) => void;
+  onUpdate: (id: string, updatedData: Partial<Reservation>) => void;
 }
 
 const ReservationCard: React.FC<ReservationCardProps> = ({
