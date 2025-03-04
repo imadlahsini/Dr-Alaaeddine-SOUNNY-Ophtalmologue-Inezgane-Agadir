@@ -40,13 +40,16 @@ export const sendTelegramNotification = async (
 
     console.log("Sending notification via Supabase Edge Function:", reservationData);
     
-    // Call the Supabase Edge Function with specific timeout and retry
+    // Call the Supabase Edge Function with proper parameters
     const startTime = Date.now();
+    
+    // The issue is here - we were using an 'options' property which doesn't exist
+    // in the FunctionInvokeOptions type. We need to use only supported parameters.
     const { data, error } = await supabase.functions.invoke("send-telegram", {
       body: reservationData,
-      // Using longer timeout for more reliable communication
-      options: {
-        timeout: 10000 // 10 seconds
+      // Removing the 'options' object as it's causing the TypeScript error
+      headers: {
+        'Content-Type': 'application/json',
       }
     });
     
