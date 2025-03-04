@@ -196,3 +196,25 @@ export async function logoutAdmin(): Promise<{ success: boolean; message?: strin
 export async function getSession() {
   return supabase.auth.getSession();
 }
+
+// Function to transform a Supabase record to a Reservation object
+export function transformReservationRecord(record: any): Reservation | null {
+  if (!record || typeof record !== 'object') {
+    console.error('Invalid record received:', record);
+    return null;
+  }
+  
+  try {
+    return {
+      id: record.id,
+      name: record.name,
+      phone: record.phone,
+      date: record.date,
+      timeSlot: record.time_slot,
+      status: record.status
+    };
+  } catch (error) {
+    console.error('Error transforming reservation record:', error, record);
+    return null;
+  }
+}

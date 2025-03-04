@@ -1,11 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import ReservationTable from '../components/ReservationTable';
 import NotificationSettings from '../components/NotificationSettings';
-import { fetchReservations, updateReservation, Reservation, logoutAdmin, getSession } from '../utils/api';
+import { 
+  fetchReservations, 
+  updateReservation, 
+  Reservation, 
+  logoutAdmin, 
+  getSession,
+  transformReservationRecord 
+} from '../utils/api';
 import { supabase } from '../integrations/supabase/client';
 import { sendReservationNotification } from '../utils/pushNotificationService';
 
@@ -14,6 +21,7 @@ const Dashboard: React.FC = () => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const realtimeChannelRef = useRef<any>(null);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -22,17 +30,19 @@ const Dashboard: React.FC = () => {
         const { data, error } = await getSession();
         
         if (error || !data.session) {
+          toast.error('Session expired. Please login again.');
           navigate('/admin');
           return;
         }
         
         // If authenticated, fetch reservations
-        fetchData();
+        await fetchData();
         
         // Set up real-time subscription
         setupRealtimeSubscription();
       } catch (err) {
         console.error('Auth check error:', err);
+        toast.error('Authentication error. Please login again.');
         navigate('/admin');
       }
     };
@@ -49,40 +59,87 @@ const Dashboard: React.FC = () => {
   const setupRealtimeSubscription = () => {
     console.log('Setting up real-time subscription to reservations...');
     
-    // Enable Supabase real-time for this table with channel
-    const channel = supabase
-      .channel('public:reservations')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'reservations'
-      }, (payload) => {
-        console.log('New reservation received via real-time:', payload);
-        
-        // Fetch the new reservation data to ensure it's complete and formatted correctly
-        handleNewReservation(payload.new);
-      })
-      .subscribe((status) => {
-        console.log('Real-time subscription status:', status);
-        
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to real-time updates for reservations');
-        } else {
-          console.warn('Failed to subscribe to real-time updates. Status:', status);
-        }
-      });
+    try {
+      // Clean up any existing subscription
+      removeRealtimeSubscription();
       
-    // Store channel reference for cleanup
-    (window as any).reservationsChannel = channel;
+      // Create a new channel with more specific configuration
+      const channel = supabase
+        .channel('schema-db-changes')
+        .on('postgres_changes', 
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'reservations'
+          }, 
+          (payload) => {
+            console.log('New reservation received via real-time:', payload);
+            
+            if (payload.new && typeof payload.new === 'object') {
+              handleNewReservation(payload.new);
+            } else {
+              console.error('Invalid payload received:', payload);
+            }
+          }
+        )
+        .on('postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'reservations'
+          },
+          (payload) => {
+            console.log('Reservation update received via real-time:', payload);
+            
+            if (payload.new && typeof payload.new === 'object') {
+              handleReservationUpdate(payload.new);
+            } else {
+              console.error('Invalid update payload received:', payload);
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log('Real-time subscription status:', status);
+          
+          if (status === 'SUBSCRIBED') {
+            console.log('Successfully subscribed to real-time updates for reservations');
+            toast.success('Real-time updates activated');
+          } else if (status === 'SUBSCRIPTION_ERROR') {
+            console.error('Failed to subscribe to real-time updates');
+            toast.error('Real-time updates failed to activate');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('Channel error occurred');
+            toast.error('Connection error with real-time service');
+            
+            // Try to reconnect after a delay
+            setTimeout(() => {
+              setupRealtimeSubscription();
+            }, 5000);
+          }
+        });
+      
+      // Store channel reference for cleanup
+      realtimeChannelRef.current = channel;
+      console.log('Real-time subscription setup complete', channel);
+    } catch (err) {
+      console.error('Error setting up real-time subscription:', err);
+      toast.error('Failed to set up real-time updates');
+    }
   };
   
   // Remove real-time subscription on component unmount
   const removeRealtimeSubscription = () => {
-    const channel = (window as any).reservationsChannel;
+    const channel = realtimeChannelRef.current;
     if (channel) {
       console.log('Removing real-time subscription...');
-      supabase.removeChannel(channel);
-      (window as any).reservationsChannel = null;
+      supabase.removeChannel(channel)
+        .then(() => {
+          console.log('Real-time subscription removed successfully');
+          realtimeChannelRef.current = null;
+        })
+        .catch(err => {
+          console.error('Error removing real-time subscription:', err);
+        });
     }
   };
   
@@ -91,19 +148,17 @@ const Dashboard: React.FC = () => {
     try {
       console.log('Processing new reservation from real-time update:', newRecord);
       
-      // Format the new reservation to match the Reservation interface
-      const newReservation: Reservation = {
-        id: newRecord.id,
-        name: newRecord.name,
-        phone: newRecord.phone,
-        date: newRecord.date,
-        timeSlot: newRecord.time_slot,
-        status: newRecord.status
-      };
+      // Format the new reservation using utility function
+      const newReservation = transformReservationRecord(newRecord);
+      
+      if (!newReservation) {
+        console.error('Failed to transform reservation data');
+        return;
+      }
       
       console.log('Formatted new reservation data:', newReservation);
       
-      // Add new reservation to state
+      // Add new reservation to state with deduplication check
       setReservations(prevReservations => {
         // Check if this reservation already exists to avoid duplicates
         const exists = prevReservations.some(res => res.id === newReservation.id);
@@ -117,15 +172,13 @@ const Dashboard: React.FC = () => {
         return [newReservation, ...prevReservations];
       });
       
-      // Send notification for new reservation
-      const notificationSent = sendReservationNotification({
+      // Send browser notification for new reservation
+      sendReservationNotification({
         name: newReservation.name,
         phone: newReservation.phone,
         date: newReservation.date,
         timeSlot: newReservation.timeSlot
       });
-      
-      console.log('Browser notification sent:', notificationSent);
       
       // Show toast notification
       toast.success('New reservation received', {
@@ -133,6 +186,34 @@ const Dashboard: React.FC = () => {
       });
     } catch (err) {
       console.error('Error handling new reservation:', err);
+    }
+  };
+  
+  // Handle reservation update from real-time subscription
+  const handleReservationUpdate = (updatedRecord: any) => {
+    try {
+      console.log('Processing reservation update from real-time:', updatedRecord);
+      
+      // Transform the updated record
+      const updatedReservation = transformReservationRecord(updatedRecord);
+      
+      if (!updatedReservation) {
+        console.error('Failed to transform updated reservation data');
+        return;
+      }
+      
+      // Update the state with the changed reservation
+      setReservations(prevReservations => 
+        prevReservations.map(res => 
+          res.id === updatedReservation.id ? updatedReservation : res
+        )
+      );
+      
+      toast.info('Reservation updated', {
+        description: `${updatedReservation.name}'s reservation has been updated`
+      });
+    } catch (err) {
+      console.error('Error handling reservation update:', err);
     }
   };
 
