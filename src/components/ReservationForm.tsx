@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
 import { fr, ar } from 'date-fns/locale';
@@ -198,6 +199,9 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
       });
       
       if (result.success) {
+        // Reservation successful, now try to send the notification
+        let telegramSuccess = false;
+        
         // Try to send Telegram notification (if available)
         try {
           console.log('Attempting to send Telegram notification...');
@@ -209,29 +213,44 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
           });
           
           console.log('Telegram notification result:', telegramResult);
+          telegramSuccess = telegramResult.success;
           
-          // Handle configuration needed case
-          if (!telegramResult.success && telegramResult.needsConfiguration) {
-            // Only show admin message if user is authenticated
-            const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-            if (isAuthenticated) {
-              toast(
-                'Telegram notifications not configured',
-                {
-                  description: 'Go to Telegram Config to set up notifications',
-                  action: {
-                    label: 'Configure',
-                    onClick: () => navigate('/telegram-config')
+          // Handle configuration needed case, but don't block the flow
+          if (!telegramResult.success) {
+            if (telegramResult.needsConfiguration) {
+              // Only show admin message if user is authenticated
+              const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+              if (isAuthenticated) {
+                toast(
+                  'Telegram notifications not configured',
+                  {
+                    description: 'Go to Telegram Config to set up notifications',
+                    action: {
+                      label: 'Configure',
+                      onClick: () => navigate('/telegram-config')
+                    }
                   }
-                }
-              );
+                );
+              }
+            } else {
+              // Log the error but don't show to end users
+              console.warn('Telegram notification failed:', telegramResult.message);
             }
           }
         } catch (telegramError) {
           console.warn('Telegram notification failed, but reservation was saved:', telegramError);
         }
         
+        // Show success message to the user
         toast.success(t.success);
+        
+        // If we're in admin mode and Telegram failed, show an additional toast
+        const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+        if (isAuthenticated && !telegramSuccess) {
+          toast.info('Reservation saved, but Telegram notification failed', {
+            description: 'Check Telegram configuration in settings'
+          });
+        }
         
         // Navigate to the thank-you page with the reservation data
         setTimeout(() => {

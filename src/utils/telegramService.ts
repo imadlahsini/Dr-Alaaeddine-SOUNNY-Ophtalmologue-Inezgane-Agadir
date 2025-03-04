@@ -17,7 +17,7 @@ interface ReservationData {
 interface TelegramResult {
   success: boolean;
   message: string;
-  needsConfiguration: boolean;
+  needsConfiguration?: boolean;
 }
 
 /**
@@ -40,10 +40,18 @@ export const sendTelegramNotification = async (
 
     console.log("Sending notification via Supabase Edge Function:", reservationData);
     
-    // Call the Supabase Edge Function
+    // Call the Supabase Edge Function with specific timeout and retry
+    const startTime = Date.now();
     const { data, error } = await supabase.functions.invoke("send-telegram", {
-      body: reservationData
+      body: reservationData,
+      // Using longer timeout for more reliable communication
+      options: {
+        timeout: 10000 // 10 seconds
+      }
     });
+    
+    const endTime = Date.now();
+    console.log(`Edge function call completed in ${endTime - startTime}ms`);
     
     if (error) {
       console.error("Error calling Supabase Edge Function:", error);
@@ -54,14 +62,54 @@ export const sendTelegramNotification = async (
       };
     }
     
+    console.log("Received response from Edge Function:", data);
+    
     // Return the result from the Edge Function
-    return data as TelegramResult;
+    return {
+      success: !!data?.success,
+      message: data?.message || "Unknown response from notification service",
+      needsConfiguration: !!data?.needsConfiguration
+    };
   } catch (error) {
     console.error("Error sending Telegram notification:", error);
     return {
       success: false,
       message: error instanceof Error ? error.message : "Unknown error",
       needsConfiguration: false
+    };
+  }
+};
+
+/**
+ * Checks if Telegram notification is configured
+ * Returns true if the bot token is configured
+ */
+export const checkTelegramConfig = async (): Promise<{
+  configured: boolean;
+  message: string;
+}> => {
+  try {
+    const { data, error } = await supabase.functions.invoke("send-telegram", {
+      body: { checkConfig: true }
+    });
+    
+    if (error) {
+      console.error("Error checking Telegram configuration:", error);
+      return { 
+        configured: false, 
+        message: error.message || "Error checking configuration" 
+      };
+    }
+    
+    return { 
+      configured: !!data?.configured,
+      message: data?.message || "Configuration check completed"
+    };
+  } catch (error) {
+    console.error("Error checking Telegram configuration:", error);
+    return {
+      configured: false,
+      message: error instanceof Error ? error.message : "Unknown error"
     };
   }
 };

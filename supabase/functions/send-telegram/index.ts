@@ -13,6 +13,7 @@ interface TelegramRequest {
   phone: string;
   date: string;
   timeSlot: string;
+  checkConfig?: boolean;
 }
 
 // Main handler function
@@ -26,6 +27,27 @@ serve(async (req) => {
     // Get the Telegram bot token from environment variable
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
     const chatId = Deno.env.get("TELEGRAM_CHAT_ID") || "1741098686";
+
+    console.log("Request received for send-telegram function");
+
+    // Parse request body
+    const data: TelegramRequest = await req.json();
+    
+    // Handle configuration check request
+    if (data.checkConfig) {
+      console.log("Config check request received");
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Configuration check completed",
+          configured: !!botToken
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     if (!botToken) {
       console.error("Telegram bot token not configured");
@@ -42,8 +64,7 @@ serve(async (req) => {
       );
     }
 
-    // Parse request body
-    const data: TelegramRequest = await req.json();
+    console.log("Bot token is configured. Chat ID:", chatId);
 
     // Validate required fields
     if (!data || !data.name || !data.phone || !data.date || !data.timeSlot) {
@@ -99,7 +120,16 @@ serve(async (req) => {
           }),
         });
 
-        const responseData = await response.json();
+        const responseText = await response.text();
+        console.log(`Telegram API raw response: ${responseText}`);
+        
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (e) {
+          console.error("Error parsing Telegram API response:", e);
+          responseData = { ok: false, description: "Invalid JSON response" };
+        }
         
         if (response.ok && responseData.ok) {
           success = true;
@@ -110,11 +140,13 @@ serve(async (req) => {
           
           // If it's an authentication error, don't retry
           if (responseData.error_code === 401) {
+            console.error("Authentication error with Telegram API. Won't retry.");
             break;
           }
           
           // Add a small delay before retrying
           if (attempt < 3) {
+            console.log(`Waiting before retry attempt ${attempt + 1}...`);
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
@@ -124,6 +156,7 @@ serve(async (req) => {
         
         // Add a small delay before retrying
         if (attempt < 3) {
+          console.log(`Waiting before retry attempt ${attempt + 1}...`);
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
@@ -142,6 +175,7 @@ serve(async (req) => {
         }
       );
     } else {
+      console.error(`Failed to send Telegram notification after ${attempt} attempts: ${lastError}`);
       return new Response(
         JSON.stringify({
           success: false,
