@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bot, Key, MessageCircle, Save, ArrowLeft, AlertCircle, Loader } from 'lucide-react';
+import { Bot, Key, MessageCircle, Save, ArrowLeft, AlertCircle, Loader, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { sendTelegramNotification } from '../utils/telegramService';
 
@@ -155,21 +155,19 @@ const TelegramConfig = () => {
             <p className="text-xs text-gray-500">This is already configured with your chat ID.</p>
           </div>
           
-          <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200">
+          <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200 mb-4">
             <div className="flex items-start">
               <AlertCircle className="w-5 h-5 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" />
               <div>
-                <h3 className="text-sm font-medium text-yellow-800">Important Note</h3>
-                <p className="text-sm text-yellow-700 mt-1">
-                  To create a Telegram bot, message @BotFather on Telegram and follow the instructions.
-                  Copy the API token it provides and paste it here.
-                </p>
+                <h3 className="text-sm font-medium text-yellow-800">Step-by-Step Guide to Configure Telegram Bot</h3>
                 <ol className="list-decimal list-inside text-sm text-yellow-700 mt-2 ml-2">
-                  <li>Start a chat with @BotFather on Telegram</li>
-                  <li>Send the command /newbot</li>
-                  <li>Follow the instructions to create your bot</li>
-                  <li>Copy the API token provided</li>
-                  <li>Start a chat with your new bot</li>
+                  <li className="mb-2">On Telegram, start a chat with <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">@BotFather <ExternalLink className="w-3 h-3 ml-1 inline" /></a></li>
+                  <li className="mb-2">Send the command <code className="bg-yellow-100 px-1 rounded">/newbot</code> to create a new bot</li>
+                  <li className="mb-2">Follow the instructions to name your bot</li>
+                  <li className="mb-2">After creating the bot, BotFather will give you an <strong>API token</strong> that looks like: <code className="bg-yellow-100 px-1 rounded">123456789:ABCDefGhIJKlmNoPQRsTUVwxyZ</code></li>
+                  <li className="mb-2">Copy that token and paste it in the field above</li>
+                  <li className="mb-2"><strong>Important:</strong> Start a conversation with your new bot by clicking the link BotFather provides or searching for your bot's username</li>
+                  <li>Click "Save" below, then "Send Test Message" to verify it's working</li>
                 </ol>
               </div>
             </div>
