@@ -30,6 +30,16 @@ export const sendTelegramNotification = async (
   config?: TelegramConfig
 ): Promise<TelegramResult> => {
   try {
+    // Validate reservation data
+    if (!reservationData || !reservationData.name || !reservationData.phone) {
+      console.error("Invalid reservation data provided:", reservationData);
+      return {
+        success: false,
+        message: "Invalid reservation data provided",
+        needsConfiguration: false
+      };
+    }
+
     // Try to get the bot token from localStorage first, then fallback to environment variable
     const savedBotToken = localStorage.getItem('telegramBotToken');
     
@@ -68,6 +78,16 @@ export const sendTelegramNotification = async (
       }),
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Telegram API responded with status ${response.status}: ${errorText}`);
+      return {
+        success: false,
+        message: `Telegram API error (${response.status}): ${errorText}`,
+        needsConfiguration: false
+      };
+    }
+
     const data = await response.json();
     
     if (!data.ok) {
@@ -75,7 +95,7 @@ export const sendTelegramNotification = async (
       return {
         success: false,
         message: data.description || "Failed to send Telegram notification",
-        needsConfiguration: false
+        needsConfiguration: data.error_code === 401 // Token might be invalid
       };
     }
     
