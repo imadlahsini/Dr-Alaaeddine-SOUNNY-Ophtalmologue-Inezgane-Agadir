@@ -200,27 +200,20 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
       if (result.success) {
         // Try to send Telegram notification (if available)
         try {
-          await sendTelegramNotification({
+          console.log('Attempting to send Telegram notification...');
+          const telegramResult = await sendTelegramNotification({
             name: formData.name,
             phone: formData.phone,
             date: formData.date,
             timeSlot: formData.timeSlot
           });
+          
+          console.log('Telegram notification result:', telegramResult);
         } catch (telegramError) {
           console.warn('Telegram notification failed, but reservation was saved:', telegramError);
         }
         
         toast.success(t.success);
-        
-        // Explicitly log the data being passed to the thank-you page
-        console.log('Navigation data:', {
-          reservation: {
-            name: formData.name,
-            phone: formData.phone,
-            date: formData.date,
-            timeSlot: formData.timeSlot
-          }
-        });
         
         // Navigate to the thank-you page with the reservation data
         setTimeout(() => {

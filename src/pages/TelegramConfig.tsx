@@ -9,7 +9,7 @@ import { sendTelegramNotification } from '../utils/telegramService';
 const TelegramConfig = () => {
   const navigate = useNavigate();
   const [botToken, setBotToken] = useState('');
-  const [chatId, setChatId] = useState('6024686458'); // Default to provided chat ID
+  const [chatId, setChatId] = useState('1741098686'); // Updated to use the provided chat ID
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
 
@@ -133,8 +133,9 @@ const TelegramConfig = () => {
               onChange={(e) => setChatId(e.target.value)}
               placeholder="Enter the chat ID for notifications"
               className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              readOnly
             />
-            <p className="text-xs text-gray-500">This is already configured with your provided chat ID.</p>
+            <p className="text-xs text-gray-500">This is already configured with your chat ID.</p>
           </div>
           
           <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200">
@@ -143,8 +144,8 @@ const TelegramConfig = () => {
               <div>
                 <h3 className="text-sm font-medium text-yellow-800">Important Note</h3>
                 <p className="text-sm text-yellow-700 mt-1">
-                  For security reasons, the bot token is stored locally in your browser. 
-                  In a production environment, this should be stored securely on the server.
+                  To create a Telegram bot, message @BotFather on Telegram and follow the instructions.
+                  Copy the API token it provides and paste it here.
                 </p>
               </div>
             </div>

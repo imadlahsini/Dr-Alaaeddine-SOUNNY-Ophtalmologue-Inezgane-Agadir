@@ -24,13 +24,16 @@ export const sendTelegramNotification = async (
   config?: TelegramConfig
 ): Promise<boolean> => {
   try {
+    // Try to get the bot token from localStorage first, then fallback to environment variable
+    const savedBotToken = localStorage.getItem('telegramBotToken');
+    
     // Default to environment variables if not provided
     const chatId = config?.chatId || import.meta.env.VITE_TELEGRAM_CHAT_ID || "1741098686";
-    const botToken = config?.botToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+    const botToken = config?.botToken || savedBotToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
 
     // If no bot token is available, return false
     if (!botToken) {
-      console.error("Telegram bot token is missing");
+      console.error("Telegram bot token is missing. Please configure it in the admin settings.");
       return false;
     }
 
@@ -38,6 +41,9 @@ export const sendTelegramNotification = async (
     
     // Format the message
     const message = formatNotificationMessage(reservationData);
+    
+    console.log("Sending Telegram notification to chat ID:", chatId);
+    console.log("Using bot token:", botToken.substring(0, 6) + "...");
     
     // Send the message to Telegram
     const response = await fetch(apiUrl, {
@@ -59,6 +65,7 @@ export const sendTelegramNotification = async (
       return false;
     }
     
+    console.log("Telegram notification sent successfully!");
     return true;
   } catch (error) {
     console.error("Error sending Telegram notification:", error);
