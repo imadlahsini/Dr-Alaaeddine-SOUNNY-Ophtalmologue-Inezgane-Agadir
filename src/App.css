@@ -63,3 +63,24 @@
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* Thank you page animations */
+@keyframes pulse {
+  0% { 
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+  50% { 
+    opacity: 1;
+    transform: scale(1.01);
+  }
+  100% { 
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite ease-in-out;
+}
+
