@@ -46,10 +46,20 @@ export const sendTelegramNotification = async (
       timeSlot: String(reservationData.timeSlot || "")
     };
 
-    // Stringify the data with safe JSON handling
-    const payload = JSON.stringify(safeData);
-    console.log("Preparing notification with payload:", payload);
-    console.log("Payload length:", payload.length);
+    // Stringifying with careful error handling
+    let payload;
+    try {
+      payload = JSON.stringify(safeData);
+      console.log("Prepared notification payload:", payload);
+      console.log("Payload length:", payload.length);
+    } catch (err) {
+      console.error("Error stringifying payload:", err);
+      return {
+        success: false,
+        message: "Error preparing notification data",
+        needsConfiguration: false
+      };
+    }
     
     // Call the Supabase Edge Function with proper parameters
     const startTime = Date.now();

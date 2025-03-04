@@ -32,9 +32,8 @@ serve(async (req) => {
     });
 
     // Get the Telegram bot token and chat ID from environment variables
-    // The bot token "7568197664:AAH42WusrtFjIZv3DjUfAAzz4jBLdqseD2k" should be stored as a Supabase secret
-    const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-    const chatId = Deno.env.get("TELEGRAM_CHAT_ID") || "6024686458"; // Use provided chat ID as fallback
+    const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN") || "7568197664:AAH42WusrtFjIZv3DjUfAAzz4jBLdqseD2k";
+    const chatId = Deno.env.get("TELEGRAM_CHAT_ID") || "6024686458";
 
     console.log("Request received for send-telegram function");
     console.log("Bot token configured:", !!botToken);
@@ -107,23 +106,6 @@ serve(async (req) => {
         }
       );
     }
-
-    if (!botToken) {
-      console.error("Telegram bot token not configured");
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: "Telegram bot token not configured",
-          needsConfiguration: true,
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    console.log("Bot token is configured. Chat ID:", chatId);
 
     // Validate required fields
     if (!data || !data.name || !data.phone || !data.date || !data.timeSlot) {
