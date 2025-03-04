@@ -1,4 +1,3 @@
-
 /**
  * API configuration and utility functions using Supabase
  */
@@ -185,6 +184,12 @@ export async function logoutAdmin(): Promise<{ success: boolean; message?: strin
       console.error('Error during logout:', error);
       return { success: false, message: error.message };
     }
+    
+    // Clear both localStorage and sessionStorage for better mobile support
+    localStorage.removeItem('isAuthenticated');
+    sessionStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('authExpiry');
+    sessionStorage.removeItem('authExpiry');
     
     return { success: true };
   } catch (error) {

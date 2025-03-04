@@ -5,18 +5,26 @@ import { useNavigate } from 'react-router-dom';
 import LoginForm from '../components/LoginForm';
 import { ShieldCheck, Loader2 } from 'lucide-react';
 import { getSession } from '../utils/api';
+import { isAuthenticated } from '../utils/authUtils';
 
 const Admin = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already authenticated with Supabase
+    // Check if user is already authenticated
     const checkAuth = async () => {
       try {
+        // First check local storage for quick UI response
+        if (isAuthenticated()) {
+          navigate('/dashboard');
+          return;
+        }
+        
+        // Then verify with Supabase for double-check
         const { data, error } = await getSession();
         
-        if (data.session) {
+        if (data?.session) {
           navigate('/dashboard');
         }
       } catch (error) {

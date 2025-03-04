@@ -31,14 +31,26 @@ const LoginForm = () => {
         localStorage.setItem('isAuthenticated', 'true');
         sessionStorage.setItem('isAuthenticated', 'true');
         
+        // Add timestamp for session expiry check
+        const expiryTime = Date.now() + (24 * 60 * 60 * 1000); // 24 hours from now
+        localStorage.setItem('authExpiry', expiryTime.toString());
+        sessionStorage.setItem('authExpiry', expiryTime.toString());
+        
         toast.success('Login successful!');
         navigate('/dashboard');
       } else {
-        toast.error(result.message || 'Login failed');
+        toast.error(result.message || 'Invalid email or password');
       }
     } catch (error) {
-      toast.error('An error occurred during login');
       console.error('Login error:', error);
+      
+      // More specific error handling
+      let errorMessage = 'An error occurred during login';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
