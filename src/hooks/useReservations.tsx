@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { fetchReservations, updateReservation, Reservation } from '../utils/api';
 
@@ -7,6 +7,7 @@ export const useReservations = () => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
 
   const fetchData = useCallback(async () => {
     console.log("FETCH: Starting reservation data fetch...");
@@ -19,6 +20,7 @@ export const useReservations = () => {
       
       if (result.success) {
         setReservations(result.data || []);
+        setLastRefreshTime(new Date());
         console.log("FETCH: Successfully set reservations data:", result.data?.length || 0, "items");
       } else {
         console.error("FETCH: API reported error:", result.message);
@@ -44,6 +46,20 @@ export const useReservations = () => {
       setLoading(false);
     }
   }, []);
+
+  // Auto-refresh data every 5 minutes when component is mounted
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      console.log("Performing auto-refresh of reservation data");
+      fetchData().catch(err => {
+        console.error("Error during auto-refresh:", err);
+      });
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, [fetchData]);
 
   const handleStatusChange = async (id: string, status: Reservation['status']) => {
     try {
@@ -81,7 +97,10 @@ export const useReservations = () => {
 
   // Handlers for realtime updates
   const handleNewReservation = useCallback((newReservation: Reservation) => {
+    console.log('Received new reservation via realtime:', newReservation);
+    
     setReservations(prevReservations => {
+      // Check if this reservation already exists in our state
       const exists = prevReservations.some(res => res.id === newReservation.id);
       if (exists) {
         console.log('Reservation already exists in state, not adding duplicate');
@@ -89,7 +108,8 @@ export const useReservations = () => {
       }
       
       console.log('Adding new reservation to state');
-      return [newReservation, ...prevReservations];
+      const updatedReservations = [newReservation, ...prevReservations];
+      return updatedReservations;
     });
     
     toast.success('New reservation received', {
@@ -98,11 +118,21 @@ export const useReservations = () => {
   }, []);
 
   const handleReservationUpdate = useCallback((updatedReservation: Reservation) => {
-    setReservations(prevReservations => 
-      prevReservations.map(res => 
+    console.log('Received reservation update via realtime:', updatedReservation);
+    
+    setReservations(prevReservations => {
+      const reservationExists = prevReservations.some(res => res.id === updatedReservation.id);
+      
+      if (!reservationExists) {
+        console.log('Updated reservation not found in current state, adding it');
+        return [updatedReservation, ...prevReservations];
+      }
+      
+      console.log('Updating existing reservation in state');
+      return prevReservations.map(res => 
         res.id === updatedReservation.id ? updatedReservation : res
-      )
-    );
+      );
+    });
     
     toast.info('Reservation updated', {
       description: `${updatedReservation.name}'s reservation has been updated`
@@ -118,6 +148,7 @@ export const useReservations = () => {
     handleUpdate,
     handleNewReservation,
     handleReservationUpdate,
-    setReservations
+    setReservations,
+    lastRefreshTime
   };
 };

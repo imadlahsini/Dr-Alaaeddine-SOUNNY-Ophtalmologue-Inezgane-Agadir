@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -22,7 +23,7 @@ import { useReservations } from '../hooks/useReservations';
 import { useRealtimeSubscription } from '../hooks/useRealtimeSubscription';
 
 // Define a type for status values to ensure type safety
-type StatusType = 'All' | 'Pending' | 'Confirmed' | 'Canceled' | 'Not Responding';
+export type StatusType = 'All' | 'Pending' | 'Confirmed' | 'Canceled' | 'Not Responding';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -133,6 +134,25 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Validate date format DD/MM/YYYY
+  const isValidDate = (dateStr: string): boolean => {
+    if (!dateStr) return false;
+    
+    const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    if (!dateRegex.test(dateStr)) return false;
+    
+    const [, day, month, year] = dateStr.match(dateRegex) || [];
+    const numDay = parseInt(day, 10);
+    const numMonth = parseInt(month, 10);
+    const numYear = parseInt(year, 10);
+    
+    if (numMonth < 1 || numMonth > 12) return false;
+    
+    // Check if day is valid for the given month and year
+    const daysInMonth = new Date(numYear, numMonth, 0).getDate();
+    return numDay > 0 && numDay <= daysInMonth;
+  };
+
   // Filter and sort reservations
   const filteredReservations = reservations.filter(res => {
     const matchesSearch = 
@@ -153,8 +173,15 @@ const Dashboard: React.FC = () => {
   });
 
   function parseDate(dateStr: string): number {
-    const [day, month, year] = dateStr.split('/').map(Number);
-    return new Date(year, month - 1, day).getTime();
+    if (!dateStr || !dateStr.includes('/')) return 0;
+    try {
+      const [day, month, year] = dateStr.split('/').map(Number);
+      // Create date with the correct format (months are 0-indexed in JS Date)
+      return new Date(year, month - 1, day).getTime();
+    } catch (error) {
+      console.error("Error parsing date:", dateStr, error);
+      return 0;
+    }
   }
 
   // Calculate stats

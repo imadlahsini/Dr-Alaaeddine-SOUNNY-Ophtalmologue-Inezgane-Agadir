@@ -1,9 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, CheckCircle, X, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-type StatusType = 'All' | 'Pending' | 'Confirmed' | 'Canceled' | 'Not Responding';
+import { StatusType } from '../../pages/Dashboard';
 
 interface DashboardFiltersProps {
   searchQuery: string;
@@ -27,6 +26,13 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   setDateFilter
 }) => {
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [dateInputValue, setDateInputValue] = useState(dateFilter || '');
+  const [dateError, setDateError] = useState<string | null>(null);
+
+  // Update the local input value when the dateFilter prop changes
+  useEffect(() => {
+    setDateInputValue(dateFilter || '');
+  }, [dateFilter]);
 
   const statusOptions = [
     { value: 'All' as StatusType, label: 'All Statuses' },
@@ -36,14 +42,76 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
     { value: 'Not Responding' as StatusType, label: 'Not Responding', icon: <div className="w-2 h-2 rounded-full bg-gray-400 mr-2" /> }
   ];
 
+  const validateDate = (value: string): boolean => {
+    if (!value) return true; // Empty is valid (no filter)
+    
+    const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    if (!dateRegex.test(value)) {
+      setDateError('Use format DD/MM/YYYY');
+      return false;
+    }
+    
+    const [, day, month, year] = value.match(dateRegex) || [];
+    const numDay = parseInt(day, 10);
+    const numMonth = parseInt(month, 10);
+    const numYear = parseInt(year, 10);
+    
+    if (numMonth < 1 || numMonth > 12) {
+      setDateError('Invalid month');
+      return false;
+    }
+    
+    // Check if day is valid for the given month and year
+    const daysInMonth = new Date(numYear, numMonth, 0).getDate();
+    if (numDay < 1 || numDay > daysInMonth) {
+      setDateError(`Invalid day for ${month}/${year}`);
+      return false;
+    }
+    
+    setDateError(null);
+    return true;
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setDateInputValue(value);
+    
+    if (value === '') {
+      setDateFilter(null);
+      setDateError(null);
+      return;
+    }
+    
+    // Auto-format the date as user types
+    if (value.length === 2 && !value.includes('/') && dateInputValue.length < 2) {
+      setDateInputValue(value + '/');
+    } else if (value.length === 5 && !value.substring(3).includes('/') && dateInputValue.length < 5) {
+      setDateInputValue(value + '/');
+    }
+    
+    if (validateDate(value)) {
+      setDateFilter(value);
+    }
+  };
+
   const clearFilters = () => {
     setSearchQuery('');
     setStatusFilter('All');
     setSortBy('newest');
     setDateFilter(null);
+    setDateInputValue('');
+    setDateError(null);
   };
 
   const hasActiveFilters = searchQuery || statusFilter !== 'All' || dateFilter;
+
+  const handleApplyFilters = () => {
+    if (dateInputValue && !validateDate(dateInputValue)) {
+      // Don't close if there's an invalid date
+      return;
+    }
+    setFiltersOpen(false);
+  };
 
   return (
     <div className="mb-6 space-y-4">
@@ -154,20 +222,29 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
                   <input
                     type="text"
                     placeholder="DD/MM/YYYY"
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    value={dateFilter || ''}
-                    onChange={(e) => setDateFilter(e.target.value || null)}
+                    className={`w-full pl-10 pr-4 py-2.5 bg-white border ${dateError ? 'border-red-300 focus:ring-red-500' : 'border-gray-200 focus:ring-primary/30'} rounded-lg focus:outline-none focus:ring-2`}
+                    value={dateInputValue}
+                    onChange={handleDateChange}
+                    maxLength={10}
                   />
-                  {dateFilter && (
+                  {dateInputValue && (
                     <button 
-                      onClick={() => setDateFilter(null)}
+                      onClick={() => {
+                        setDateInputValue('');
+                        setDateFilter(null);
+                        setDateError(null);
+                      }}
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Filter by reservation date</p>
+                {dateError ? (
+                  <p className="text-xs text-red-500 mt-1">{dateError}</p>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-1">Filter by reservation date</p>
+                )}
               </div>
             </div>
             
@@ -182,7 +259,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
                 Clear Filters
               </button>
               <button
-                onClick={() => setFiltersOpen(false)}
+                onClick={handleApplyFilters}
                 className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90"
               >
                 Apply Filters

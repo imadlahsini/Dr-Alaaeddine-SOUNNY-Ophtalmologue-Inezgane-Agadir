@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar, Clock, User, Phone, CheckCircle, XCircle, 
   AlertTriangle, Edit, Save, X, MoreVertical, Check
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Reservation {
   id: string;
@@ -34,6 +35,36 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
     date: reservation.date,
     timeSlot: reservation.timeSlot
   });
+  const [statusChangeLoading, setStatusChangeLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  // Reset edited data when reservation changes (needed for realtime updates)
+  useEffect(() => {
+    setEditedData({
+      name: reservation.name,
+      phone: reservation.phone,
+      date: reservation.date,
+      timeSlot: reservation.timeSlot
+    });
+  }, [reservation]);
+
+  useEffect(() => {
+    // Close the status menu when clicking outside
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (showStatusMenu) {
+        setShowStatusMenu(false);
+      }
+    };
+    
+    // Only add the event listener when the status menu is open
+    if (showStatusMenu) {
+      document.addEventListener('click', handleOutsideClick);
+    }
+    
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, [showStatusMenu]);
 
   const statusColors = {
     Pending: {
@@ -65,10 +96,60 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setEditedData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear validation errors as user types
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
+        const updated = { ...prev };
+        delete updated[name];
+        return updated;
+      });
+    }
   };
 
-  const handleSave = () => {
-    onUpdate(reservation.id, editedData);
+  const validateData = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    // Name validation
+    if (!editedData.name.trim()) {
+      errors.name = 'Name is required';
+    }
+    
+    // Phone validation
+    if (!editedData.phone.trim()) {
+      errors.phone = 'Phone is required';
+    } else if (!/^\d{9,10}$/.test(editedData.phone)) {
+      errors.phone = 'Phone must be 9-10 digits';
+    }
+    
+    // Date validation
+    if (!editedData.date.trim()) {
+      errors.date = 'Date is required';
+    } else if (!/^\d{2}\/\d{2}\/\d{4}$/.test(editedData.date)) {
+      errors.date = 'Use format DD/MM/YYYY';
+    } else {
+      // Check if date is valid
+      const [day, month, year] = editedData.date.split('/').map(Number);
+      const daysInMonth = new Date(year, month, 0).getDate();
+      
+      if (month < 1 || month > 12) {
+        errors.date = 'Invalid month';
+      } else if (day < 1 || day > daysInMonth) {
+        errors.date = `Invalid day for month ${month}`;
+      }
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!validateData()) {
+      toast.error('Please fix validation errors');
+      return;
+    }
+    
+    await onUpdate(reservation.id, editedData);
     setIsEditing(false);
   };
 
@@ -79,10 +160,27 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
       date: reservation.date,
       timeSlot: reservation.timeSlot
     });
+    setValidationErrors({});
     setIsEditing(false);
   };
 
+  const handleStatusChangeClick = async (status: Reservation['status']) => {
+    setStatusChangeLoading(true);
+    setShowStatusMenu(false);
+    
+    try {
+      await onStatusChange(reservation.id, status);
+    } finally {
+      setStatusChangeLoading(false);
+    }
+  };
+
   const statusStyle = statusColors[reservation.status];
+
+  const handleMenuToggle = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent document click from immediately closing the menu
+    setShowStatusMenu(!showStatusMenu);
+  };
 
   return (
     <motion.div
@@ -101,10 +199,20 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
         <div className="relative">
           {!isEditing ? (
             <button
-              onClick={() => setShowStatusMenu(!showStatusMenu)}
+              onClick={handleMenuToggle}
               className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100"
+              disabled={statusChangeLoading}
             >
-              <MoreVertical className="w-5 h-5" />
+              {statusChangeLoading ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+                  <span className="block w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
+                </motion.div>
+              ) : (
+                <MoreVertical className="w-5 h-5" />
+              )}
             </button>
           ) : (
             <div className="flex gap-1">
@@ -134,7 +242,8 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 5 }}
                 transition={{ duration: 0.1 }}
-                className="absolute right-0 top-8 z-10 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 text-sm"
+                className="absolute right-0 top-8 z-50 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 text-sm"
+                onClick={(e) => e.stopPropagation()} // Prevent clicks inside from closing
               >
                 <div className="px-3 py-2 text-xs font-semibold text-gray-500 border-b">
                   ACTIONS
@@ -154,31 +263,37 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
                   CHANGE STATUS
                 </div>
                 <button
-                  onClick={() => {
-                    onStatusChange(reservation.id, 'Confirmed');
-                    setShowStatusMenu(false);
-                  }}
-                  className="flex w-full items-center px-3 py-2 hover:bg-green-50 text-gray-700"
+                  onClick={() => handleStatusChangeClick('Confirmed')}
+                  disabled={reservation.status === 'Confirmed' || statusChangeLoading}
+                  className={`flex w-full items-center px-3 py-2 ${
+                    reservation.status === 'Confirmed' 
+                      ? 'bg-green-50 cursor-default' 
+                      : 'hover:bg-green-50 cursor-pointer'
+                  } text-gray-700`}
                 >
                   <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
                   Confirm
                 </button>
                 <button
-                  onClick={() => {
-                    onStatusChange(reservation.id, 'Canceled');
-                    setShowStatusMenu(false);
-                  }}
-                  className="flex w-full items-center px-3 py-2 hover:bg-red-50 text-gray-700"
+                  onClick={() => handleStatusChangeClick('Canceled')}
+                  disabled={reservation.status === 'Canceled' || statusChangeLoading}
+                  className={`flex w-full items-center px-3 py-2 ${
+                    reservation.status === 'Canceled' 
+                      ? 'bg-red-50 cursor-default' 
+                      : 'hover:bg-red-50 cursor-pointer'
+                  } text-gray-700`}
                 >
                   <XCircle className="w-4 h-4 mr-2 text-red-500" />
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
-                    onStatusChange(reservation.id, 'Not Responding');
-                    setShowStatusMenu(false);
-                  }}
-                  className="flex w-full items-center px-3 py-2 hover:bg-gray-50 text-gray-700"
+                  onClick={() => handleStatusChangeClick('Not Responding')}
+                  disabled={reservation.status === 'Not Responding' || statusChangeLoading}
+                  className={`flex w-full items-center px-3 py-2 ${
+                    reservation.status === 'Not Responding' 
+                      ? 'bg-gray-50 cursor-default' 
+                      : 'hover:bg-gray-50 cursor-pointer'
+                  } text-gray-700`}
                 >
                   <AlertTriangle className="w-4 h-4 mr-2 text-gray-500" />
                   Not Responding
@@ -209,8 +324,13 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
                   name="name"
                   value={editedData.name}
                   onChange={handleChange}
-                  className="w-full p-2.5 text-gray-700 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:outline-none"
+                  className={`w-full p-2.5 text-gray-700 bg-gray-50 border ${
+                    validationErrors.name ? 'border-red-300 focus:ring-red-300' : 'border-gray-200 focus:ring-primary/30'
+                  } rounded-lg focus:ring-2 focus:outline-none`}
                 />
+                {validationErrors.name && (
+                  <p className="text-red-500 text-xs mt-1">{validationErrors.name}</p>
+                )}
               </div>
               
               <div className="space-y-1">
@@ -223,8 +343,13 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
                   name="phone"
                   value={editedData.phone}
                   onChange={handleChange}
-                  className="w-full p-2.5 text-gray-700 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:outline-none"
+                  className={`w-full p-2.5 text-gray-700 bg-gray-50 border ${
+                    validationErrors.phone ? 'border-red-300 focus:ring-red-300' : 'border-gray-200 focus:ring-primary/30'
+                  } rounded-lg focus:ring-2 focus:outline-none`}
                 />
+                {validationErrors.phone && (
+                  <p className="text-red-500 text-xs mt-1">{validationErrors.phone}</p>
+                )}
               </div>
               
               <div className="space-y-1">
@@ -238,8 +363,13 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
                   value={editedData.date}
                   onChange={handleChange}
                   placeholder="DD/MM/YYYY"
-                  className="w-full p-2.5 text-gray-700 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:outline-none"
+                  className={`w-full p-2.5 text-gray-700 bg-gray-50 border ${
+                    validationErrors.date ? 'border-red-300 focus:ring-red-300' : 'border-gray-200 focus:ring-primary/30'
+                  } rounded-lg focus:ring-2 focus:outline-none`}
                 />
+                {validationErrors.date && (
+                  <p className="text-red-500 text-xs mt-1">{validationErrors.date}</p>
+                )}
               </div>
               
               <div className="space-y-1">
@@ -295,12 +425,14 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => onStatusChange(reservation.id, 'Confirmed')}
-              disabled={reservation.status === 'Confirmed'}
+              onClick={() => handleStatusChangeClick('Confirmed')}
+              disabled={reservation.status === 'Confirmed' || statusChangeLoading}
               className={`px-4 py-1.5 rounded-full text-sm font-medium flex items-center ${
                 reservation.status === 'Confirmed'
                   ? 'bg-green-100 text-green-700 cursor-default'
-                  : 'bg-gray-100 hover:bg-green-100 text-gray-700 hover:text-green-700'
+                  : statusChangeLoading 
+                    ? 'bg-gray-100 text-gray-400 cursor-wait'
+                    : 'bg-gray-100 hover:bg-green-100 text-gray-700 hover:text-green-700'
               }`}
             >
               <Check className="w-3.5 h-3.5 mr-1" />
@@ -309,12 +441,14 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => onStatusChange(reservation.id, 'Canceled')}
-              disabled={reservation.status === 'Canceled'}
+              onClick={() => handleStatusChangeClick('Canceled')}
+              disabled={reservation.status === 'Canceled' || statusChangeLoading}
               className={`px-4 py-1.5 rounded-full text-sm font-medium flex items-center ${
                 reservation.status === 'Canceled'
                   ? 'bg-red-100 text-red-700 cursor-default'
-                  : 'bg-gray-100 hover:bg-red-100 text-gray-700 hover:text-red-700'
+                  : statusChangeLoading
+                    ? 'bg-gray-100 text-gray-400 cursor-wait'
+                    : 'bg-gray-100 hover:bg-red-100 text-gray-700 hover:text-red-700'
               }`}
             >
               <X className="w-3.5 h-3.5 mr-1" />
