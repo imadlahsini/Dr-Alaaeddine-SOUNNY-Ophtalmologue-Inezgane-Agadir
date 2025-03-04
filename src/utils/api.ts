@@ -1,3 +1,4 @@
+
 /**
  * API configuration and utility functions for database operations
  */
@@ -45,6 +46,7 @@ export async function createReservation(reservationData: Omit<Reservation, 'id' 
     const testUrl = new URL(apiUrl);
     console.log('API URL is valid:', testUrl.toString());
     
+    // Simplified fetch request with only essential options
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -52,6 +54,7 @@ export async function createReservation(reservationData: Omit<Reservation, 'id' 
         'Accept': 'application/json',
       },
       body: JSON.stringify(reservationData),
+      // Important: Setting mode to 'cors' explicitly requests CORS handling
       mode: 'cors',
     });
     

@@ -39,20 +39,30 @@ RewriteEngine On
     RewriteRule .* - [F,L]
 </IfModule>
 
-# Enable CORS - PERMISSIVE CONFIG FOR TESTING
+# Comprehensive CORS configuration - CRITICAL for cross-domain requests
 <IfModule mod_headers.c>
+    # Allow requests from all origins (required for CORS)
     Header always set Access-Control-Allow-Origin "*"
+    
+    # Allow specific HTTP methods
     Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    
+    # Allow specific HTTP headers
     Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    
+    # Set preflight cache duration (in seconds)
     Header always set Access-Control-Max-Age "3600"
     
-    # Handle preflight OPTIONS requests
+    # Allow credentials if needed
+    # Header always set Access-Control-Allow-Credentials "true"
+    
+    # Handle preflight OPTIONS requests with a 200 OK response
     RewriteEngine On
     RewriteCond %{REQUEST_METHOD} OPTIONS
     RewriteRule ^(.*)$ $1 [R=200,L]
 </IfModule>
 
-# Fix for CORS preflight requests
+# Alternative OPTIONS handler for preflight requests
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteCond %{REQUEST_METHOD} OPTIONS

@@ -3,10 +3,11 @@
 // API root endpoint
 // This file should be placed on your Namecheap hosting
 
-// CORS headers
+// CORS headers - CRITICAL for cross-domain requests
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin");
+header("Access-Control-Max-Age: 3600");
 header("Content-Type: application/json");
 
 // Handle preflight request

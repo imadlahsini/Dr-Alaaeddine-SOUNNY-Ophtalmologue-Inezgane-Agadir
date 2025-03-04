@@ -15,7 +15,7 @@ error_log("Received request to create.php with method: " . $_SERVER['REQUEST_MET
 error_log("Request headers: " . print_r(getallheaders(), true));
 error_log("Raw input: " . file_get_contents('php://input'));
 
-// Handle preflight request
+// Handle preflight request - This is CRITICAL for browser CORS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     error_log("Responding to OPTIONS request with 200 OK");
