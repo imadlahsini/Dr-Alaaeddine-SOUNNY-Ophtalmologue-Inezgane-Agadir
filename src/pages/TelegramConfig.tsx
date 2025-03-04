@@ -12,14 +12,13 @@ import { sendTelegramNotification, checkTelegramConfig } from '../utils/telegram
 const TelegramConfig = () => {
   const navigate = useNavigate();
   const [botToken, setBotToken] = useState('');
-  const [chatId, setChatId] = useState('1741098686'); // Default chat ID
+  const [chatId, setChatId] = useState('6024686458'); // Updated default chat ID
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    // Check if user is authenticated
     const checkAuth = async () => {
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
@@ -27,7 +26,6 @@ const TelegramConfig = () => {
         return;
       }
       
-      // Check if the Telegram bot token is configured
       setIsChecking(true);
       try {
         const configStatus = await checkTelegramConfig();
@@ -59,10 +57,6 @@ const TelegramConfig = () => {
     setIsSaving(true);
     
     try {
-      // In a real-world scenario, we would need to update the Supabase Edge Function secret
-      // For now, we'll simulate this process and provide instructions
-      
-      // Show instructions toast about setting the secret in Supabase
       toast.info(
         'In production, this would set the TELEGRAM_BOT_TOKEN secret in Supabase',
         {
@@ -71,13 +65,11 @@ const TelegramConfig = () => {
         }
       );
       
-      // Simulate a network request
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       setIsConfigured(true);
       toast.success('Telegram bot settings saved successfully');
       
-      // Show additional instructions
       toast.info(
         'Important: In a real project, you would:',
         {
@@ -102,10 +94,8 @@ const TelegramConfig = () => {
     setIsTesting(true);
     
     try {
-      // Show testing notification
       toast.info('Sending test message to Telegram...');
       
-      // Prepare test data with all required fields
       const testData = {
         name: 'Test User',
         phone: '0612345678',
@@ -115,7 +105,6 @@ const TelegramConfig = () => {
       
       console.log('Sending test notification with data:', JSON.stringify(testData));
       
-      // Send a test notification
       const result = await sendTelegramNotification(testData);
       
       console.log('Test message result:', result);
@@ -141,7 +130,6 @@ const TelegramConfig = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      {/* Header */}
       <header className="max-w-lg mx-auto mb-8 flex items-center justify-between">
         <button 
           onClick={() => navigate('/dashboard')} 
@@ -153,7 +141,6 @@ const TelegramConfig = () => {
         <h1 className="text-xl font-bold text-gray-800">Telegram Configuration</h1>
       </header>
       
-      {/* Main Content */}
       <motion.div
         className="max-w-lg mx-auto bg-white rounded-[20px] shadow p-6"
         initial={{ opacity: 0, y: 20 }}

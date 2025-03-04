@@ -31,13 +31,13 @@ serve(async (req) => {
       headers: Object.fromEntries(req.headers.entries()),
     });
 
-    // Get the Telegram bot token from environment variable
+    // Get the Telegram bot token and chat ID from environment variables
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-    const chatId = Deno.env.get("TELEGRAM_CHAT_ID") || "1741098686";
+    const chatId = Deno.env.get("TELEGRAM_CHAT_ID") || "6024686458"; // Use environment variable with fallback
 
     console.log("Request received for send-telegram function");
     console.log("Bot token configured:", !!botToken);
-    console.log("Chat ID configured:", !!chatId);
+    console.log("Chat ID configured:", chatId);
 
     // Parse request body with robust error handling
     let data: TelegramRequest | null = null;

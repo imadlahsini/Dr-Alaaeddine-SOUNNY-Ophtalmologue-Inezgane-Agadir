@@ -38,8 +38,16 @@ export const sendTelegramNotification = async (
       };
     }
 
+    // Ensure all required fields are provided and are strings
+    const safeData = {
+      name: String(reservationData.name || ""),
+      phone: String(reservationData.phone || ""),
+      date: String(reservationData.date || ""),
+      timeSlot: String(reservationData.timeSlot || "")
+    };
+
     // Stringify the data with safe JSON handling
-    const payload = JSON.stringify(reservationData);
+    const payload = JSON.stringify(safeData);
     console.log("Preparing notification with payload:", payload);
     console.log("Payload length:", payload.length);
     
@@ -76,10 +84,11 @@ export const sendTelegramNotification = async (
     };
   } catch (error) {
     console.error("Error sending Telegram notification:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Unknown error",
-      needsConfiguration: false
+      message: errorMessage || "Unknown error",
+      needsConfiguration: errorMessage.includes("not configured") || false
     };
   }
 };
