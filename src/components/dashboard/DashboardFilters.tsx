@@ -3,11 +3,13 @@ import React, { useState } from 'react';
 import { Search, Filter, CheckCircle, X, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+type StatusType = 'All' | 'Pending' | 'Confirmed' | 'Canceled' | 'Not Responding';
+
 interface DashboardFiltersProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  statusFilter: 'All' | 'Pending' | 'Confirmed' | 'Canceled' | 'Not Responding';
-  setStatusFilter: (status: 'All' | 'Pending' | 'Confirmed' | 'Canceled' | 'Not Responding') => void;
+  statusFilter: StatusType;
+  setStatusFilter: (status: StatusType) => void;
   sortBy: 'newest' | 'oldest';
   setSortBy: (sort: 'newest' | 'oldest') => void;
   dateFilter: string | null;
@@ -27,11 +29,11 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const statusOptions = [
-    { value: 'All', label: 'All Statuses' },
-    { value: 'Pending', label: 'Pending', icon: <div className="w-2 h-2 rounded-full bg-yellow-400 mr-2" /> },
-    { value: 'Confirmed', label: 'Confirmed', icon: <div className="w-2 h-2 rounded-full bg-green-400 mr-2" /> },
-    { value: 'Canceled', label: 'Canceled', icon: <div className="w-2 h-2 rounded-full bg-red-400 mr-2" /> },
-    { value: 'Not Responding', label: 'Not Responding', icon: <div className="w-2 h-2 rounded-full bg-gray-400 mr-2" /> }
+    { value: 'All' as StatusType, label: 'All Statuses' },
+    { value: 'Pending' as StatusType, label: 'Pending', icon: <div className="w-2 h-2 rounded-full bg-yellow-400 mr-2" /> },
+    { value: 'Confirmed' as StatusType, label: 'Confirmed', icon: <div className="w-2 h-2 rounded-full bg-green-400 mr-2" /> },
+    { value: 'Canceled' as StatusType, label: 'Canceled', icon: <div className="w-2 h-2 rounded-full bg-red-400 mr-2" /> },
+    { value: 'Not Responding' as StatusType, label: 'Not Responding', icon: <div className="w-2 h-2 rounded-full bg-gray-400 mr-2" /> }
   ];
 
   const clearFilters = () => {

@@ -21,6 +21,9 @@ import { useAuthentication } from '../hooks/useAuthentication';
 import { useReservations } from '../hooks/useReservations';
 import { useRealtimeSubscription } from '../hooks/useRealtimeSubscription';
 
+// Define a type for status values to ensure type safety
+type StatusType = 'All' | 'Pending' | 'Confirmed' | 'Canceled' | 'Not Responding';
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [isMounted, setIsMounted] = useState(false);
@@ -29,7 +32,7 @@ const Dashboard: React.FC = () => {
   
   // Filters state
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'All' | 'Pending' | 'Confirmed' | 'Canceled' | 'Not Responding'>('All');
+  const [statusFilter, setStatusFilter] = useState<StatusType>('All');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
   const [dateFilter, setDateFilter] = useState<string | null>(null);
   
@@ -234,7 +237,7 @@ const Dashboard: React.FC = () => {
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             statusFilter={statusFilter}
-            setStatusFilter={(status: 'All' | 'Pending' | 'Confirmed' | 'Canceled' | 'Not Responding') => setStatusFilter(status)}
+            setStatusFilter={setStatusFilter}
             sortBy={sortBy}
             setSortBy={setSortBy}
             dateFilter={dateFilter}
