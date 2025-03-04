@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -28,15 +29,20 @@ const Dashboard: React.FC = () => {
   const authCheckedRef = useRef(false);
 
   useEffect(() => {
+    console.log("Dashboard mounting, checking authentication...");
+    
     const checkAuth = async () => {
       try {
         // Quick check first using local storage to prevent flicker
         if (!isAuthenticated()) {
           console.log('Not authenticated based on local storage check');
           toast.error('Session expired. Please login again.');
+          clearAuthState();
           navigate('/admin');
           return;
         }
+        
+        console.log("Local auth check passed, verifying with Supabase...");
         
         // Then verify with Supabase
         const { data, error } = await getSession();
@@ -57,13 +63,21 @@ const Dashboard: React.FC = () => {
           return;
         }
         
+        console.log("Supabase authentication verified successfully");
+        
         // Renew authentication status
         setAuthState();
         
         if (!authCheckedRef.current) {
           authCheckedRef.current = true;
-          await fetchData();
-          setupRealtimeSubscription();
+          try {
+            await fetchData();
+            setupRealtimeSubscription();
+          } catch (fetchError) {
+            console.error("Error in initial data fetch:", fetchError);
+            setError("Failed to load reservations. Please try refreshing the page.");
+            setLoading(false);
+          }
         }
       } catch (err) {
         console.error('Auth check error:', err);
@@ -78,6 +92,7 @@ const Dashboard: React.FC = () => {
     const intervalId = setInterval(checkAuth, 5 * 60 * 1000); // Check auth every 5 minutes
     
     return () => {
+      console.log("Dashboard unmounting, cleaning up...");
       clearInterval(intervalId);
       removeRealtimeSubscription();
     };
@@ -241,11 +256,14 @@ const Dashboard: React.FC = () => {
   };
 
   const fetchData = async () => {
+    console.log("Fetching reservation data...");
     setLoading(true);
     setError(null);
 
     try {
       const result = await fetchReservations();
+      console.log("Reservation data received:", result);
+      
       if (result.success) {
         setReservations(result.data || []);
       } else {
@@ -304,6 +322,7 @@ const Dashboard: React.FC = () => {
 
   const handleLogout = async () => {
     try {
+      console.log("Logging out...");
       removeRealtimeSubscription();
       
       const result = await logoutAdmin();
@@ -326,15 +345,37 @@ const Dashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading reservations...</span>
+      <div className="flex flex-col justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <span>Loading reservations...</span>
       </div>
     );
   }
 
   if (error) {
-    return <div className="flex justify-center items-center h-screen text-red-500">Error: {error}</div>;
+    return (
+      <div className="container mx-auto p-4">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-semibold text-gray-800">Reservations Dashboard</h1>
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            Logout
+          </button>
+        </div>
+        
+        <div className="flex flex-col justify-center items-center p-8 bg-white rounded-lg shadow">
+          <div className="text-red-500 mb-4">Error: {error}</div>
+          <button 
+            onClick={fetchData}
+            className="bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
