@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { logoutAdmin, sendReservationNotification } from '../utils/api';
+import { logoutAdmin } from '../utils/api';
+import { sendReservationNotification } from '../utils/pushNotificationService';
 import { clearAuthState } from '../utils/authUtils';
 
 // Components
