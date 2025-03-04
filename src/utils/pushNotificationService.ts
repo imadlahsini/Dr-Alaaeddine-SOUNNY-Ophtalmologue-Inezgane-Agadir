@@ -55,7 +55,7 @@ export const sendReservationNotification = (reservationData: {
       body: `${reservationData.name} has booked for ${reservationData.date} at ${reservationData.timeSlot}`,
       icon: '/favicon.ico', // Use site favicon as notification icon
       tag: 'new-reservation', // Tag for grouping similar notifications
-      renotify: true // Force notification for each new reservation
+      // Removed the unsupported 'renotify' property
     });
 
     // Add click handler to open dashboard when notification is clicked
