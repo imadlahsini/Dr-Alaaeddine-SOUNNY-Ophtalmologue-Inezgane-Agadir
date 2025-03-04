@@ -24,35 +24,56 @@ serve(async (req) => {
   }
 
   try {
+    // Log request details for debugging
+    console.log("Request received:", {
+      method: req.method,
+      url: req.url,
+      headers: Object.fromEntries(req.headers.entries()),
+    });
+
     // Get the Telegram bot token from environment variable
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
     const chatId = Deno.env.get("TELEGRAM_CHAT_ID") || "1741098686";
 
     console.log("Request received for send-telegram function");
+    console.log("Bot token configured:", !!botToken);
+    console.log("Chat ID configured:", !!chatId);
 
     // Parse request body with robust error handling
-    let data: TelegramRequest;
+    let data: TelegramRequest | null = null;
+    let bodyText = "";
+    
     try {
       // Get request body as text first to inspect it
-      const bodyText = await req.text();
-      console.log("Raw request body length:", bodyText?.length);
-      console.log("Raw request body (first 500 chars):", bodyText?.substring(0, 500));
+      bodyText = await req.text();
       
-      if (!bodyText || bodyText.trim() === '') {
-        console.error("Empty request body detected");
+      console.log("Raw request body length:", bodyText?.length || 0);
+      if (bodyText && bodyText.length > 0) {
+        // Only log a preview if body exists and is not empty
+        console.log("Raw request body preview:", bodyText.substring(0, Math.min(500, bodyText.length)));
+      } else {
+        console.error("Empty or null request body detected");
         throw new Error("Empty request body");
       }
       
+      // Try to parse JSON with additional safeguards
       try {
+        if (bodyText.trim() === '') {
+          throw new Error("Empty request body");
+        }
+        
         data = JSON.parse(bodyText);
-        console.log("Parsed request data:", data);
+        
+        // Validate that data was parsed correctly
+        if (data === null || typeof data !== 'object') {
+          throw new Error("Parsed data is not an object");
+        }
+        
+        console.log("Parsed request data:", JSON.stringify(data));
       } catch (jsonError) {
         console.error("JSON parse error:", jsonError);
+        console.error("Failed to parse body:", bodyText);
         throw new Error(`Invalid JSON: ${jsonError.message}`);
-      }
-      
-      if (!data) {
-        throw new Error("Null data after parsing");
       }
     } catch (parseError) {
       console.error("Error parsing request body:", parseError);
@@ -61,6 +82,7 @@ serve(async (req) => {
           success: false,
           message: `Request parsing error: ${parseError.message}`,
           needsConfiguration: false,
+          bodyPreview: bodyText ? bodyText.substring(0, 100) + "..." : "empty",
         }),
         {
           status: 400,
@@ -70,7 +92,7 @@ serve(async (req) => {
     }
     
     // Handle configuration check request
-    if (data.checkConfig) {
+    if (data?.checkConfig) {
       console.log("Config check request received");
       return new Response(
         JSON.stringify({
@@ -104,11 +126,22 @@ serve(async (req) => {
 
     // Validate required fields
     if (!data || !data.name || !data.phone || !data.date || !data.timeSlot) {
-      console.error("Invalid data provided:", data);
+      const missingFields = [];
+      if (!data) missingFields.push("data");
+      else {
+        if (!data.name) missingFields.push("name");
+        if (!data.phone) missingFields.push("phone");
+        if (!data.date) missingFields.push("date");
+        if (!data.timeSlot) missingFields.push("timeSlot");
+      }
+      
+      console.error("Invalid data provided. Missing fields:", missingFields.join(", "));
+      console.error("Received data:", data ? JSON.stringify(data) : "null");
+      
       return new Response(
         JSON.stringify({
           success: false,
-          message: "Invalid data provided. Required fields: name, phone, date, timeSlot",
+          message: `Invalid data provided. Missing fields: ${missingFields.join(", ")}`,
           needsConfiguration: false,
         }),
         {
@@ -133,37 +166,45 @@ serve(async (req) => {
     // Send message to Telegram
     const apiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
     console.log(`Sending Telegram notification to chat ID: ${chatId}`);
+    console.log("Message content:", message.substring(0, 100) + "...");
     
     // Implement retry logic (up to 3 attempts)
     let attempt = 0;
     let success = false;
     let lastError = null;
+    let responseText = "";
     
     while (attempt < 3 && !success) {
       attempt++;
       console.log(`Attempt ${attempt} to send Telegram notification...`);
       
       try {
+        // Prepare the request body for Telegram API
+        const telegramPayload = JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: "HTML",
+        });
+        
+        console.log(`Telegram API request payload length: ${telegramPayload.length}`);
+        
         const response = await fetch(apiUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            chat_id: chatId,
-            text: message,
-            parse_mode: "HTML",
-          }),
+          body: telegramPayload,
         });
 
-        const responseText = await response.text();
-        console.log(`Telegram API raw response: ${responseText}`);
+        responseText = await response.text();
+        console.log(`Telegram API raw response (${response.status}): ${responseText}`);
         
         let responseData;
         try {
           responseData = JSON.parse(responseText);
         } catch (e) {
           console.error("Error parsing Telegram API response:", e);
+          console.error("Raw response was:", responseText);
           responseData = { ok: false, description: "Invalid JSON response" };
         }
         
@@ -212,11 +253,14 @@ serve(async (req) => {
       );
     } else {
       console.error(`Failed to send Telegram notification after ${attempt} attempts: ${lastError}`);
+      console.error("Last API response:", responseText);
+      
       return new Response(
         JSON.stringify({
           success: false,
           message: `Failed to send Telegram notification after ${attempt} attempts: ${lastError}`,
           needsConfiguration: lastError?.includes("401") || false,
+          lastResponse: responseText.substring(0, 200) + "...",
         }),
         {
           status: 500,

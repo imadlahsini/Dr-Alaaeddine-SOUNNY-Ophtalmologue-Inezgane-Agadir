@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
 import { fr, ar } from 'date-fns/locale';
@@ -205,6 +204,13 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
         // Try to send Telegram notification (if available)
         try {
           console.log('Attempting to send Telegram notification...');
+          console.log('Notification data:', JSON.stringify({
+            name: formData.name,
+            phone: formData.phone,
+            date: formData.date,
+            timeSlot: formData.timeSlot
+          }));
+          
           const telegramResult = await sendTelegramNotification({
             name: formData.name,
             phone: formData.phone,

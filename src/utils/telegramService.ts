@@ -38,13 +38,17 @@ export const sendTelegramNotification = async (
       };
     }
 
-    console.log("Sending notification via Supabase Edge Function:", JSON.stringify(reservationData));
+    // Stringify the data with safe JSON handling
+    const payload = JSON.stringify(reservationData);
+    console.log("Preparing notification with payload:", payload);
+    console.log("Payload length:", payload.length);
     
     // Call the Supabase Edge Function with proper parameters
     const startTime = Date.now();
     
+    console.log("Invoking edge function with content type:", 'application/json');
     const { data, error } = await supabase.functions.invoke("send-telegram", {
-      body: JSON.stringify(reservationData),
+      body: payload,
       headers: {
         'Content-Type': 'application/json',
       }
@@ -56,7 +60,7 @@ export const sendTelegramNotification = async (
     if (error) {
       console.error("Error calling Supabase Edge Function:", error);
       return {
-        success: false,
+        success: false, 
         message: error.message || "Error sending notification",
         needsConfiguration: error.message?.includes("not configured") || false
       };
@@ -89,8 +93,11 @@ export const checkTelegramConfig = async (): Promise<{
   message: string;
 }> => {
   try {
+    const configCheckPayload = JSON.stringify({ checkConfig: true });
+    console.log("Checking configuration with payload:", configCheckPayload);
+    
     const { data, error } = await supabase.functions.invoke("send-telegram", {
-      body: JSON.stringify({ checkConfig: true }),
+      body: configCheckPayload,
       headers: {
         'Content-Type': 'application/json',
       }
@@ -103,6 +110,8 @@ export const checkTelegramConfig = async (): Promise<{
         message: error.message || "Error checking configuration" 
       };
     }
+    
+    console.log("Configuration check response:", data);
     
     return { 
       configured: !!data?.configured,

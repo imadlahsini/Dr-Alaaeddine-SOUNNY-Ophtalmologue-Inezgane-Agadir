@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -106,13 +105,18 @@ const TelegramConfig = () => {
       // Show testing notification
       toast.info('Sending test message to Telegram...');
       
-      // Send a test notification
-      const result = await sendTelegramNotification({
+      // Prepare test data with all required fields
+      const testData = {
         name: 'Test User',
         phone: '0612345678',
         date: '01/01/2024',
         timeSlot: '8h00-11h00'
-      });
+      };
+      
+      console.log('Sending test notification with data:', JSON.stringify(testData));
+      
+      // Send a test notification
+      const result = await sendTelegramNotification(testData);
       
       console.log('Test message result:', result);
       
