@@ -45,14 +45,14 @@ const LoginForm = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="w-full max-w-md p-6 bg-white rounded-[20px] shadow-lg"
+      className="w-full max-w-md p-4 sm:p-6 bg-white rounded-[20px] shadow-lg"
     >
-      <div className="mb-6 text-center">
-        <h2 className="text-2xl font-bold text-primary">Admin Login</h2>
-        <p className="mt-2 text-gray-600">Please enter your credentials to continue</p>
+      <div className="mb-4 sm:mb-6 text-center">
+        <h2 className="text-xl sm:text-2xl font-bold text-primary">Admin Login</h2>
+        <p className="mt-2 text-sm sm:text-base text-gray-600">Please enter your credentials to continue</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
         <div className="form-group">
           <label htmlFor="email"><Mail className="w-4 h-4 mr-1" /> Email</label>
           <input
@@ -62,8 +62,9 @@ const LoginForm = () => {
             value={credentials.email}
             onChange={handleChange}
             required
-            className="w-full p-4 text-base bg-transparent border-none rounded-[15px] outline-none"
+            className="w-full p-3 sm:p-4 text-base bg-transparent border-none rounded-[15px] outline-none"
             placeholder="Enter your email"
+            autoComplete="email"
           />
         </div>
 
@@ -76,8 +77,9 @@ const LoginForm = () => {
             value={credentials.password}
             onChange={handleChange}
             required
-            className="w-full p-4 text-base bg-transparent border-none rounded-[15px] outline-none"
+            className="w-full p-3 sm:p-4 text-base bg-transparent border-none rounded-[15px] outline-none"
             placeholder="Enter your password"
+            autoComplete="current-password"
           />
         </div>
 
