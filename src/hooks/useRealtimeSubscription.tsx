@@ -8,11 +8,13 @@ import { Reservation, transformReservationRecord } from '../utils/api';
 interface UseRealtimeSubscriptionProps {
   onNewReservation: (newReservation: Reservation) => void;
   onReservationUpdate: (updatedReservation: Reservation) => void;
+  onReservationDelete: (deletedId: string) => void;
 }
 
 export const useRealtimeSubscription = ({ 
   onNewReservation, 
-  onReservationUpdate 
+  onReservationUpdate,
+  onReservationDelete
 }: UseRealtimeSubscriptionProps) => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const channelRef = useRef<any>(null);
@@ -64,6 +66,21 @@ export const useRealtimeSubscription = ({
               }
             }
           )
+          .on('postgres_changes',
+            {
+              event: 'DELETE',
+              schema: 'public',
+              table: 'reservations'
+            },
+            (payload) => {
+              console.log('Reservation deletion received via real-time:', payload);
+              
+              if (payload.old && typeof payload.old === 'object' && 'id' in payload.old) {
+                const deletedId = payload.old.id as string;
+                onReservationDelete(deletedId);
+              }
+            }
+          )
           .subscribe((status) => {
             console.log('Real-time subscription status:', status);
             
@@ -104,7 +121,7 @@ export const useRealtimeSubscription = ({
     return () => {
       removeSubscription();
     };
-  }, [onNewReservation, onReservationUpdate]);
+  }, [onNewReservation, onReservationUpdate, onReservationDelete]);
 
   const removeSubscription = () => {
     const channel = channelRef.current;
