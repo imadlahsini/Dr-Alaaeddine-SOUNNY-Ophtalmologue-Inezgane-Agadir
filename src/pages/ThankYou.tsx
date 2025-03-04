@@ -1,8 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, ArrowLeft, MapPin, Phone, Calendar, Clock } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { CheckCircle, MapPin, Phone, Calendar, Clock } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 interface LocationState {
   reservation?: {
@@ -44,9 +44,9 @@ const ThankYou = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-start p-0 relative overflow-hidden">
-      {/* Top Half - Reservation Details */}
+      {/* Top Section - Reservation Details (65% of screen height) */}
       <motion.div 
-        className="w-full max-w-md bg-white pt-8 pb-6 px-6 sm:px-8 text-center z-10 relative"
+        className="w-full max-w-md bg-white pt-8 pb-6 px-6 sm:px-8 text-center z-10 relative h-[65vh] overflow-y-auto"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ 
@@ -147,30 +147,17 @@ const ThankYou = () => {
             </div>
           </motion.div>
         )}
-        
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.8 }}
-        >
-          <Link 
-            to="/"
-            className="inline-flex items-center gap-2 text-primary hover:underline text-sm sm:text-base"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Retour à l'accueil</span>
-          </Link>
-        </motion.div>
       </motion.div>
       
-      {/* Bottom Half - Map Background */}
-      <div className="w-full h-[50vh] absolute bottom-0 left-0 right-0 z-0">
+      {/* Bottom Section - Map (35% of screen height) */}
+      <div className="w-full h-[35vh] absolute bottom-0 left-0 right-0 z-0">
         <iframe 
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2624.9916256937845!2d2.373522315674894!3d48.86363707928882!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47e66e1ee61f31cf%3A0xc86ec9eaddfd84bc!2s75011%20Paris%2C%20France!5e0!3m2!1sen!2sus!4v1644330078503!5m2!1sen!2sus" 
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2624.8132457082284!2d2.330007!3d48.868197!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47e66fcbe6997f3d%3A0x5c45774a9fa2ace7!2sPlace%20Saint-Augustin%2C%2075008%20Paris!5e0!3m2!1sen!2sfr!4v1715285947289!5m2!1sen!2sfr" 
           className="w-full h-full border-0" 
           loading="lazy"
           title="Location"
           referrerPolicy="no-referrer-when-downgrade"
+          allowFullScreen
         ></iframe>
       </div>
       
