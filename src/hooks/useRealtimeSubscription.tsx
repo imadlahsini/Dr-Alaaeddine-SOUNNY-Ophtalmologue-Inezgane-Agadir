@@ -18,6 +18,7 @@ export const useRealtimeSubscription = ({
 }: UseRealtimeSubscriptionProps) => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const channelRef = useRef<any>(null);
+  const toastShownRef = useRef(false); // Prevent duplicate toasts
 
   useEffect(() => {
     console.log('Setting up real-time subscription hook...');
@@ -87,18 +88,26 @@ export const useRealtimeSubscription = ({
             if (status === 'SUBSCRIBED') {
               console.log('Successfully subscribed to real-time updates');
               setIsSubscribed(true);
-              toast.success('Real-time updates activated');
+              
+              // Only show toast once per session
+              if (!toastShownRef.current) {
+                toast.success('Real-time updates activated');
+                toastShownRef.current = true;
+              }
             } else if (status === REALTIME_SUBSCRIBE_STATES.TIMED_OUT) {
               console.error('Subscription timed out');
               setIsSubscribed(false);
               toast.error('Real-time updates timed out');
+              toastShownRef.current = false; // Reset so we can show again on reconnect
             } else if (status === REALTIME_SUBSCRIBE_STATES.CLOSED) {
               console.error('Subscription closed');
               setIsSubscribed(false);
+              toastShownRef.current = false; // Reset so we can show again on reconnect
             } else if (status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR) {
               console.error('Channel error occurred');
               setIsSubscribed(false);
               toast.error('Connection error with real-time service');
+              toastShownRef.current = false; // Reset so we can show again on reconnect
               
               // Try to reconnect in 5 seconds
               setTimeout(() => {
@@ -113,6 +122,7 @@ export const useRealtimeSubscription = ({
         console.error('Error setting up real-time subscription:', err);
         toast.error('Failed to set up real-time updates');
         setIsSubscribed(false);
+        toastShownRef.current = false; // Reset so we can show again on reconnect
       }
     };
 
@@ -132,6 +142,7 @@ export const useRealtimeSubscription = ({
           console.log('Real-time subscription removed successfully');
           channelRef.current = null;
           setIsSubscribed(false);
+          toastShownRef.current = false; // Reset so we can show again on reconnect
         })
         .catch(err => {
           console.error('Error removing real-time subscription:', err);

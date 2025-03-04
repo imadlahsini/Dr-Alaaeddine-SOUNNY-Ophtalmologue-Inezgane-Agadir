@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar, Clock, User, Phone, CheckCircle, XCircle, 
@@ -37,6 +37,8 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
   });
   const [statusChangeLoading, setStatusChangeLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const statusMenuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Reset edited data when reservation changes (needed for realtime updates)
   useEffect(() => {
@@ -51,7 +53,13 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
   useEffect(() => {
     // Close the status menu when clicking outside
     const handleOutsideClick = (e: MouseEvent) => {
-      if (showStatusMenu) {
+      if (
+        showStatusMenu && 
+        statusMenuRef.current && 
+        buttonRef.current && 
+        !statusMenuRef.current.contains(e.target as Node) && 
+        !buttonRef.current.contains(e.target as Node)
+      ) {
         setShowStatusMenu(false);
       }
     };
@@ -59,10 +67,15 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
     // Only add the event listener when the status menu is open
     if (showStatusMenu) {
       document.addEventListener('click', handleOutsideClick);
+      // Also close when user scrolls or touches somewhere else on mobile
+      document.addEventListener('touchstart', handleOutsideClick, { passive: true });
+      document.addEventListener('scroll', () => setShowStatusMenu(false), { passive: true });
     }
     
     return () => {
       document.removeEventListener('click', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+      document.removeEventListener('scroll', () => setShowStatusMenu(false));
     };
   }, [showStatusMenu]);
 
@@ -165,6 +178,12 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
   };
 
   const handleStatusChangeClick = async (status: Reservation['status']) => {
+    if (reservation.status === status) {
+      console.log(`Reservation is already in ${status} status, ignoring`);
+      setShowStatusMenu(false);
+      return;
+    }
+    
     setStatusChangeLoading(true);
     setShowStatusMenu(false);
     
@@ -199,14 +218,17 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
         <div className="relative">
           {!isEditing ? (
             <button
+              ref={buttonRef}
               onClick={handleMenuToggle}
               className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100"
               disabled={statusChangeLoading}
+              aria-label="More options"
             >
               {statusChangeLoading ? (
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="flex justify-center items-center"
                 >
                   <span className="block w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
                 </motion.div>
@@ -221,6 +243,7 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSave}
                 className="p-1.5 rounded-md text-green-600 hover:bg-green-50"
+                aria-label="Save changes"
               >
                 <Save className="w-5 h-5" />
               </motion.button>
@@ -229,6 +252,7 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
                 whileTap={{ scale: 0.95 }}
                 onClick={handleCancel}
                 className="p-1.5 rounded-md text-red-600 hover:bg-red-50"
+                aria-label="Cancel editing"
               >
                 <X className="w-5 h-5" />
               </motion.button>
@@ -238,6 +262,7 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
           <AnimatePresence>
             {showStatusMenu && (
               <motion.div
+                ref={statusMenuRef}
                 initial={{ opacity: 0, scale: 0.95, y: 5 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 5 }}
@@ -339,6 +364,7 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
                 </label>
                 <input
                   type="tel"
+                  inputMode="numeric"
                   id={`phone-${reservation.id}`}
                   name="phone"
                   value={editedData.phone}

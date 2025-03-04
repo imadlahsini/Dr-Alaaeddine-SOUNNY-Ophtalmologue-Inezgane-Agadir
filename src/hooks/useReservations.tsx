@@ -9,6 +9,7 @@ export const useReservations = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
   const refreshIntervalRef = useRef<number | null>(null);
+  const updatingReservationsRef = useRef<Set<string>>(new Set()); // Track reservations being updated
 
   const clearRefreshInterval = () => {
     if (refreshIntervalRef.current) {
@@ -79,9 +80,20 @@ export const useReservations = () => {
   }, [fetchData]);
 
   const handleStatusChange = async (id: string, status: Reservation['status']) => {
+    // Prevent duplicate requests
+    if (updatingReservationsRef.current.has(id)) {
+      console.log(`Already updating reservation ${id}, ignoring duplicate request`);
+      return;
+    }
+    
+    updatingReservationsRef.current.add(id);
+    
     try {
+      console.log(`Updating reservation ${id} status to ${status}`);
       const result = await updateReservation(id, { status });
+      
       if (result.success) {
+        // Update local state immediately
         setReservations(prev =>
           prev.map(res => (res.id === id ? { ...res, status } : res))
         );
@@ -92,13 +104,25 @@ export const useReservations = () => {
     } catch (err) {
       console.error('Error updating status:', err);
       toast.error('Network error. Please try again.');
+    } finally {
+      updatingReservationsRef.current.delete(id);
     }
   };
 
   const handleUpdate = async (id: string, updatedData: Partial<Reservation>) => {
+    if (updatingReservationsRef.current.has(id)) {
+      console.log(`Already updating reservation ${id}, ignoring duplicate request`);
+      return;
+    }
+    
+    updatingReservationsRef.current.add(id);
+    
     try {
+      console.log(`Updating reservation ${id} with data:`, updatedData);
       const result = await updateReservation(id, updatedData);
+      
       if (result.success) {
+        // Update local state immediately
         setReservations(prev =>
           prev.map(res => (res.id === id ? { ...res, ...updatedData } : res))
         );
@@ -109,6 +133,8 @@ export const useReservations = () => {
     } catch (err) {
       console.error('Error updating reservation:', err);
       toast.error('Network error. Please try again.');
+    } finally {
+      updatingReservationsRef.current.delete(id);
     }
   };
 

@@ -84,9 +84,26 @@ const Dashboard: React.FC = () => {
     console.log("Dashboard component MOUNTED");
     setIsMounted(true);
     
+    // Force layout recalculation on mobile
+    const forceReflow = () => {
+      if (window.innerWidth < 768) {
+        document.body.style.minHeight = '100vh';
+        document.documentElement.style.minHeight = '100vh';
+        
+        // Add a small timeout to ensure styles are applied
+        setTimeout(() => {
+          window.dispatchEvent(new Event('resize'));
+        }, 100);
+      }
+    };
+    
+    forceReflow();
+    window.addEventListener('resize', forceReflow);
+    
     return () => {
       console.log("Dashboard component UNMOUNTED");
       setIsMounted(false);
+      window.removeEventListener('resize', forceReflow);
     };
   }, []);
 
@@ -257,7 +274,7 @@ const Dashboard: React.FC = () => {
 
       {/* Main content when data is loaded successfully */}
       {!loading && !error && (
-        <div className="space-y-6">
+        <div className="space-y-6 min-h-screen">
           {/* Notification Settings */}
           <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm">
             <NotificationSettings />
