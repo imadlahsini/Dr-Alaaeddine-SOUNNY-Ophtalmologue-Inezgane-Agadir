@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, MapPin, Phone, Calendar, Clock } from 'lucide-react';
+import { CheckCircle, MapPin, Phone, Calendar, Clock, User } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
 interface LocationState {
@@ -115,27 +115,20 @@ const ThankYou = () => {
           </div>
         </motion.div>
         
-        {/* Reservation details */}
+        {/* New Reservation info card */}
         {state.reservation && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.6 }}
-            className="bg-gray-50 rounded-xl p-4 mb-6"
+            className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 mb-6 shadow-sm border border-gray-100"
           >
-            <h2 className="font-bold text-gray-800 mb-3 text-left">Détails de la réservation</h2>
+            <h2 className="font-bold text-gray-800 mb-3 text-left">Informations de réservation</h2>
             
             <div className="flex items-center gap-3 mb-2">
-              <Calendar className="w-5 h-5 text-primary" />
+              <User className="w-5 h-5 text-primary" />
               <span className="text-gray-700 text-left text-sm">
-                {formatDate(state.reservation.date)}
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-3 mb-2">
-              <Clock className="w-5 h-5 text-primary" />
-              <span className="text-gray-700 text-left text-sm">
-                {state.reservation.timeSlot}
+                {state.reservation.name}
               </span>
             </div>
             
@@ -145,12 +138,29 @@ const ThankYou = () => {
                 {state.reservation.phone}
               </span>
             </div>
+            
+            <div className="flex items-center gap-3 mb-2">
+              <Calendar className="w-5 h-5 text-primary" />
+              <span className="text-gray-700 text-left text-sm">
+                {formatDate(state.reservation.date)}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <Clock className="w-5 h-5 text-primary" />
+              <span className="text-gray-700 text-left text-sm">
+                {state.reservation.timeSlot}
+              </span>
+            </div>
           </motion.div>
         )}
       </motion.div>
       
       {/* Bottom Section - Map (35% of screen height) */}
       <div className="w-full h-[35vh] absolute bottom-0 left-0 right-0 z-0">
+        {/* Gradient fade overlay */}
+        <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-background to-transparent z-10"></div>
+        
         <iframe 
           src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2624.8132457082284!2d2.330007!3d48.868197!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47e66fcbe6997f3d%3A0x5c45774a9fa2ace7!2sPlace%20Saint-Augustin%2C%2075008%20Paris!5e0!3m2!1sen!2sfr!4v1715285947289!5m2!1sen!2sfr" 
           className="w-full h-full border-0" 
@@ -159,19 +169,6 @@ const ThankYou = () => {
           referrerPolicy="no-referrer-when-downgrade"
           allowFullScreen
         ></iframe>
-      </div>
-      
-      {/* Map Link Overlay */}
-      <div className="absolute bottom-20 left-0 right-0 flex justify-center z-10">
-        <a 
-          href="https://maps.app.goo.gl/XirUbciG7u1597hZ6" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="bg-white/90 backdrop-blur-sm text-primary hover:bg-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 transition-all hover:shadow-xl"
-        >
-          <MapPin className="w-4 h-4" />
-          Ouvrir dans Google Maps
-        </a>
       </div>
       
       {/* Floating action buttons */}
