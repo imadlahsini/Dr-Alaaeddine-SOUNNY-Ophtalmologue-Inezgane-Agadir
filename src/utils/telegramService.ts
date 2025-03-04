@@ -25,7 +25,7 @@ export const sendTelegramNotification = async (
 ): Promise<boolean> => {
   try {
     // Default to environment variables if not provided
-    const chatId = config?.chatId || import.meta.env.VITE_TELEGRAM_CHAT_ID || "6024686458";
+    const chatId = config?.chatId || import.meta.env.VITE_TELEGRAM_CHAT_ID || "1741098686";
     const botToken = config?.botToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
 
     // If no bot token is available, return false
