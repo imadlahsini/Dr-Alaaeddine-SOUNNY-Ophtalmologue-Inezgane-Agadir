@@ -46,8 +46,8 @@ const ThankYou = () => {
   };
 
   return (
-    <div className="h-screen bg-background flex flex-col items-center justify-between p-0 relative">
-      {/* Top Section - Reservation Details (reduced from 65% to 55% of screen height) */}
+    <div className="h-screen bg-background flex flex-col items-center justify-between p-0 relative overflow-hidden">
+      {/* Top Section - Reservation Details */}
       <motion.div 
         className="w-full max-w-md bg-white pt-6 pb-4 px-6 sm:px-8 text-center z-10 relative h-[55vh] flex flex-col"
         initial={{ opacity: 0, scale: 0.9 }}
@@ -84,33 +84,33 @@ const ThankYou = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
-          className="text-gray-600 mb-4 sm:mb-5 text-sm sm:text-base"
+          className="text-gray-600 mb-6 text-sm sm:text-base"
         >
           Votre demande de rendez-vous a été reçue avec succès. <b>Nous vous contacterons bientôt pour confirmer.</b>
         </motion.p>
         
-        {/* Status cards */}
+        {/* Status cards with increased spacing */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.5 }}
-          className="mb-4"
+          className="mb-4 space-y-4"
         >
-          <div className="bg-gray-50 border border-primary rounded-xl p-2.5 flex items-center gap-3 mb-2">
+          <div className="bg-gray-50 border border-primary rounded-xl p-3 flex items-center gap-3">
             <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white">
               ✓
             </div>
             <div className="text-left font-semibold text-gray-800">Remplir le formulaire</div>
           </div>
           
-          <div className="bg-gray-50 border border-primary rounded-xl p-2.5 flex items-center gap-3 mb-2">
+          <div className="bg-gray-50 border border-primary rounded-xl p-3 flex items-center gap-3">
             <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white">
               ✓
             </div>
             <div className="text-left font-semibold text-gray-800">Formulaire envoyé</div>
           </div>
           
-          <div className="bg-amber-50 border border-amber-400 rounded-xl p-2.5 flex items-center gap-3 animate-pulse">
+          <div className="bg-amber-50 border border-amber-400 rounded-xl p-3 flex items-center gap-3 animate-pulse">
             <div className="w-7 h-7 bg-amber-500 rounded-full flex items-center justify-center text-white">
               !
             </div>
@@ -159,7 +159,7 @@ const ThankYou = () => {
         )}
       </motion.div>
       
-      {/* Bottom Section - Map (increased from 35% to 45% of screen height) */}
+      {/* Bottom Section - Map with no space above it */}
       <div className="w-full h-[45vh] relative z-0">
         {/* Gradient fade overlay */}
         <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-background to-transparent z-10"></div>
