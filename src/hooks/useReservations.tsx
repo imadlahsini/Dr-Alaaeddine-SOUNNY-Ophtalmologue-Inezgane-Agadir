@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { fetchReservations, updateReservation, Reservation } from '../utils/api';
 
@@ -8,6 +8,15 @@ export const useReservations = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const refreshIntervalRef = useRef<number | null>(null);
+
+  const clearRefreshInterval = () => {
+    if (refreshIntervalRef.current) {
+      console.log("Clearing existing refresh interval");
+      clearInterval(refreshIntervalRef.current);
+      refreshIntervalRef.current = null;
+    }
+  };
 
   const fetchData = useCallback(async () => {
     console.log("FETCH: Starting reservation data fetch...");
@@ -49,7 +58,15 @@ export const useReservations = () => {
 
   // Auto-refresh data every 5 minutes when component is mounted
   useEffect(() => {
-    const refreshInterval = setInterval(() => {
+    // Initial fetch
+    fetchData().catch(err => {
+      console.error("Error during initial fetch:", err);
+    });
+    
+    // Set up interval for auto-refresh
+    clearRefreshInterval(); // Clear any existing interval
+    
+    refreshIntervalRef.current = window.setInterval(() => {
       console.log("Performing auto-refresh of reservation data");
       fetchData().catch(err => {
         console.error("Error during auto-refresh:", err);
@@ -57,7 +74,7 @@ export const useReservations = () => {
     }, 5 * 60 * 1000); // 5 minutes
     
     return () => {
-      clearInterval(refreshInterval);
+      clearRefreshInterval();
     };
   }, [fetchData]);
 
@@ -139,15 +156,59 @@ export const useReservations = () => {
     });
   }, []);
 
+  // Handle reservation deletion from realtime
+  const handleReservationDelete = useCallback((deletedId: string) => {
+    console.log('Received reservation deletion via realtime:', deletedId);
+    
+    setReservations(prevReservations => {
+      const exists = prevReservations.some(res => res.id === deletedId);
+      
+      if (!exists) {
+        console.log('Deleted reservation not found in current state, no changes needed');
+        return prevReservations;
+      }
+      
+      console.log('Removing deleted reservation from state');
+      return prevReservations.filter(res => res.id !== deletedId);
+    });
+    
+    toast.info('Reservation deleted', {
+      description: 'A reservation has been removed from the system'
+    });
+  }, []);
+
+  // Manual refresh function that resets the auto-refresh timer
+  const refreshData = useCallback(async () => {
+    console.log("Manual refresh requested, resetting auto-refresh timer");
+    
+    // Clear existing interval and set a new one
+    clearRefreshInterval();
+    
+    // Fetch data immediately
+    await fetchData();
+    
+    // Set up new interval
+    refreshIntervalRef.current = window.setInterval(() => {
+      console.log("Performing auto-refresh of reservation data");
+      fetchData().catch(err => {
+        console.error("Error during auto-refresh:", err);
+      });
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    return true; // Indicate success
+  }, [fetchData]);
+
   return {
     reservations,
     loading,
     error,
     fetchData,
+    refreshData, // New method for manual refresh
     handleStatusChange,
     handleUpdate,
     handleNewReservation,
     handleReservationUpdate,
+    handleReservationDelete, // New handler for deletion events
     setReservations,
     lastRefreshTime
   };

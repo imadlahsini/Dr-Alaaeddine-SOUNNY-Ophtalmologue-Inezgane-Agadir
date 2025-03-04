@@ -1,11 +1,13 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { logoutAdmin } from '../utils/api';
 import { sendReservationNotification } from '../utils/pushNotificationService';
 import { clearAuthState } from '../utils/authUtils';
-import { CalendarDays, Users, Calendar, BadgeCheck, XCircle, AlertTriangle, ArrowDown } from 'lucide-react';
+import { CalendarDays, Users, Calendar, BadgeCheck, XCircle, AlertTriangle, ArrowDown, RefreshCw } from 'lucide-react';
+import { format } from 'date-fns';
+import debounce from 'lodash/debounce';
 
 // Components
 import LoadingState from '../components/dashboard/LoadingState';
@@ -30,6 +32,7 @@ const Dashboard: React.FC = () => {
   const [isMounted, setIsMounted] = useState(false);
   const [timeoutOccurred, setTimeoutOccurred] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Filters state
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,10 +48,13 @@ const Dashboard: React.FC = () => {
     loading,
     error,
     fetchData,
+    refreshData,
     handleStatusChange,
     handleUpdate,
     handleNewReservation,
-    handleReservationUpdate
+    handleReservationUpdate,
+    handleReservationDelete,
+    lastRefreshTime
   } = useReservations();
 
   // Set up realtime subscription
@@ -69,7 +75,8 @@ const Dashboard: React.FC = () => {
         console.error('Failed to send push notification:', notifError);
       }
     },
-    onReservationUpdate: handleReservationUpdate
+    onReservationUpdate: handleReservationUpdate,
+    onReservationDelete: handleReservationDelete
   });
 
   // Component mount tracking
@@ -109,6 +116,30 @@ const Dashboard: React.FC = () => {
       clearTimeout(loadingTimeoutId);
     };
   }, [loading, isMounted]);
+
+  // Create debounced search handler
+  const debouncedSetSearchQuery = useCallback(
+    debounce((value: string) => {
+      setSearchQuery(value);
+    }, 300),
+    []
+  );
+
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
+    try {
+      await refreshData();
+      toast.success('Dashboard refreshed successfully');
+    } catch (error) {
+      toast.error('Failed to refresh dashboard');
+      console.error('Refresh error:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Logout handler
   const handleLogout = async () => {
@@ -195,6 +226,11 @@ const Dashboard: React.FC = () => {
     ? Math.round((confirmedReservations / totalReservations) * 100) 
     : 0;
 
+  // Format last refresh time
+  const formattedLastRefreshTime = lastRefreshTime 
+    ? format(lastRefreshTime, 'dd/MM/yyyy HH:mm:ss')
+    : 'Never';
+
   // Handle authentication checking
   if (isChecking) {
     return <LoadingState />;
@@ -225,6 +261,31 @@ const Dashboard: React.FC = () => {
           {/* Notification Settings */}
           <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm">
             <NotificationSettings />
+          </div>
+          
+          {/* Last refresh and manual refresh */}
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-gray-500">
+              Last refreshed: {formattedLastRefreshTime}
+            </p>
+            
+            <button 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white rounded-md shadow-sm border border-gray-200 hover:bg-gray-50"
+            >
+              {isRefreshing ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <span>Refreshing...</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4" />
+                  <span>Refresh</span>
+                </>
+              )}
+            </button>
           </div>
           
           {/* Stats Cards */}
@@ -262,7 +323,7 @@ const Dashboard: React.FC = () => {
           {/* Filters */}
           <DashboardFilters 
             searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
+            setSearchQuery={(value) => debouncedSetSearchQuery(value)}
             statusFilter={statusFilter}
             setStatusFilter={setStatusFilter}
             sortBy={sortBy}
@@ -273,7 +334,7 @@ const Dashboard: React.FC = () => {
 
           {/* Reservations Grid */}
           {reservations.length === 0 ? (
-            <EmptyState onRefresh={fetchData} />
+            <EmptyState onRefresh={handleRefresh} />
           ) : (
             <div>
               {sortedReservations.length === 0 ? (
