@@ -18,6 +18,7 @@ export const useRealtimeSubscription = ({
 }: UseRealtimeSubscriptionProps) => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const channelRef = useRef<any>(null);
+  const setupAttemptedRef = useRef(false);
   
   // Prevent multiple toast notifications using session storage
   // instead of refs which don't persist between page refreshes
@@ -37,7 +38,15 @@ export const useRealtimeSubscription = ({
   useEffect(() => {
     // Prevent setting up multiple subscriptions
     const setupId = Math.random().toString(36).substring(7);
+    
+    // Only setup subscription once per component lifecycle
+    if (setupAttemptedRef.current) {
+      console.log(`Subscription setup already attempted, skipping (ID: ${setupId})`);
+      return;
+    }
+    
     console.log(`Setting up real-time subscription hook... (ID: ${setupId})`);
+    setupAttemptedRef.current = true;
     
     const setupSubscription = () => {
       try {
@@ -163,7 +172,7 @@ export const useRealtimeSubscription = ({
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       removeSubscription();
     };
-  }, [onNewReservation, onReservationUpdate, onReservationDelete]);
+  }, []); // Empty dependency array, only run once on mount
 
   const removeSubscription = () => {
     const channel = channelRef.current;

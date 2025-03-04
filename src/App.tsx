@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Index from './pages/Index';
 import ThankYou from './pages/ThankYou';
@@ -12,7 +12,16 @@ import { initializeNotifications } from './utils/pushNotificationService';
 import './App.css';
 
 function App() {
+  const initCompletedRef = useRef(false);
+  
   useEffect(() => {
+    // Prevent duplicate initialization
+    if (initCompletedRef.current) {
+      return;
+    }
+    
+    initCompletedRef.current = true;
+    
     // Initialize push notifications for admin users on app load
     initializeNotifications();
     
@@ -69,10 +78,13 @@ function App() {
     
     applyMobileStyles();
     
-    // Clear session storage on app start to prevent stale flags
-    if (!sessionStorage.getItem('app_initialized')) {
+    // Only clear session storage on first app load in a new session
+    const isFirstLoad = !sessionStorage.getItem('app_initialized');
+    if (isFirstLoad) {
       console.log('First load: clearing session storage to prevent stale flags');
-      sessionStorage.clear();
+      // Don't completely clear session storage as it could remove authentication data
+      // Just remove potential stale flags
+      sessionStorage.removeItem('realtime_toast_shown');
       sessionStorage.setItem('app_initialized', 'true');
     }
   }, []);

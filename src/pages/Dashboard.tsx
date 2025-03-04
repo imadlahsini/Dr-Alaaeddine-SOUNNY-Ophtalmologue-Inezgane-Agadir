@@ -36,6 +36,7 @@ const Dashboard: React.FC = () => {
   
   // Prevent useEffect from running twice in development
   const effectRan = useRef(false);
+  const dashboardInitialized = useRef(false);
   
   // Filters state
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,30 +61,42 @@ const Dashboard: React.FC = () => {
     lastRefreshTime
   } = useReservations();
 
+  // Stable callback references to prevent subscription recreations
+  const onNewReservationCallback = useCallback((newReservation) => {
+    handleNewReservation(newReservation);
+    
+    // Send notification
+    try {
+      console.log('Sending push notification for new reservation');
+      sendReservationNotification({
+        name: newReservation.name,
+        phone: newReservation.phone,
+        date: newReservation.date,
+        timeSlot: newReservation.timeSlot
+      });
+    } catch (notifError) {
+      console.error('Failed to send push notification:', notifError);
+    }
+  }, [handleNewReservation]);
+
+  const onReservationUpdateCallback = useCallback(handleReservationUpdate, [handleReservationUpdate]);
+  const onReservationDeleteCallback = useCallback(handleReservationDelete, [handleReservationDelete]);
+
   // Set up realtime subscription with memoized callbacks to prevent recreating the subscription
   const { isSubscribed } = useRealtimeSubscription({
-    onNewReservation: useCallback((newReservation) => {
-      handleNewReservation(newReservation);
-      
-      // Send notification
-      try {
-        console.log('Sending push notification for new reservation');
-        sendReservationNotification({
-          name: newReservation.name,
-          phone: newReservation.phone,
-          date: newReservation.date,
-          timeSlot: newReservation.timeSlot
-        });
-      } catch (notifError) {
-        console.error('Failed to send push notification:', notifError);
-      }
-    }, [handleNewReservation]),
-    onReservationUpdate: useCallback(handleReservationUpdate, [handleReservationUpdate]),
-    onReservationDelete: useCallback(handleReservationDelete, [handleReservationDelete])
+    onNewReservation: onNewReservationCallback,
+    onReservationUpdate: onReservationUpdateCallback,
+    onReservationDelete: onReservationDeleteCallback
   });
 
   // Component mount tracking with additional safeguards
   useEffect(() => {
+    // Skip if already initialized to prevent double initialization
+    if (dashboardInitialized.current) {
+      console.log("Dashboard already initialized, skipping");
+      return;
+    }
+    
     // In development React will run effects twice, which can cause issues
     // This check prevents double execution in development
     if (effectRan.current === true && process.env.NODE_ENV !== 'production') {
@@ -93,6 +106,7 @@ const Dashboard: React.FC = () => {
     
     console.log("Dashboard component MOUNTED (effect executed once)");
     setIsMounted(true);
+    dashboardInitialized.current = true;
     
     // Force layout recalculation on mobile
     const forceReflow = () => {

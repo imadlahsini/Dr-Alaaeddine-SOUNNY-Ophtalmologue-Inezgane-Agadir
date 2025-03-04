@@ -11,6 +11,7 @@ export const useReservations = () => {
   const updatingReservationsRef = useRef<Set<string>>(new Set()); // Track reservations being updated
   const isMountedRef = useRef(true); // Track if component is mounted
   const fetchInProgressRef = useRef(false); // Prevent concurrent fetches
+  const initialFetchDoneRef = useRef(false); // Track if initial fetch has been done
 
   const clearRefreshInterval = () => {
     if (refreshIntervalRef.current) {
@@ -83,6 +84,7 @@ export const useReservations = () => {
         }
         
         setLastRefreshTime(new Date());
+        initialFetchDoneRef.current = true;
         console.log("FETCH: Successfully set reservations data:", result.data?.length || 0, "items");
       } else {
         console.error("FETCH: API reported error:", result.message);
@@ -116,24 +118,27 @@ export const useReservations = () => {
 
   // Auto-refresh data every 5 minutes when component is mounted
   useEffect(() => {
-    // Initial fetch
-    if (isMountedRef.current && !fetchInProgressRef.current) {
+    // Initial fetch - only if not already done
+    if (isMountedRef.current && !fetchInProgressRef.current && !initialFetchDoneRef.current) {
+      console.log("Performing initial fetch of reservation data");
       fetchData().catch(err => {
         console.error("Error during initial fetch:", err);
       });
     }
     
-    // Set up interval for auto-refresh
-    clearRefreshInterval(); // Clear any existing interval
-    
-    refreshIntervalRef.current = window.setInterval(() => {
-      if (isMountedRef.current && !fetchInProgressRef.current && document.visibilityState !== 'hidden') {
-        console.log("Performing auto-refresh of reservation data");
-        fetchData().catch(err => {
-          console.error("Error during auto-refresh:", err);
-        });
-      }
-    }, 5 * 60 * 1000); // 5 minutes
+    // Set up interval for auto-refresh - only once
+    if (!refreshIntervalRef.current) {
+      console.log("Setting up auto-refresh interval (5 minutes)");
+      
+      refreshIntervalRef.current = window.setInterval(() => {
+        if (isMountedRef.current && !fetchInProgressRef.current && document.visibilityState !== 'hidden') {
+          console.log("Performing scheduled auto-refresh of reservation data");
+          fetchData().catch(err => {
+            console.error("Error during auto-refresh:", err);
+          });
+        }
+      }, 5 * 60 * 1000); // 5 minutes
+    }
     
     // Handle visibility changes to avoid refresh when tab is not visible
     const handleVisibilityChange = () => {
@@ -151,7 +156,7 @@ export const useReservations = () => {
       clearRefreshInterval();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [fetchData]);
+  }, [fetchData]); // Only include fetchData in dependencies
 
   const handleStatusChange = async (id: string, status: Reservation['status']) => {
     // Prevent duplicate requests
@@ -344,7 +349,7 @@ export const useReservations = () => {
   }, []);
 
   const refreshData = useCallback(async () => {
-    console.log("Manual refresh requested, resetting auto-refresh timer");
+    console.log("Manual refresh requested");
     
     // Skip if component unmounted
     if (!isMountedRef.current) {
@@ -358,25 +363,9 @@ export const useReservations = () => {
       return false;
     }
     
-    // Clear existing interval and set a new one
-    clearRefreshInterval();
-    
     // Fetch data immediately
     try {
       await fetchData();
-      
-      // Set up new interval (only if component still mounted)
-      if (isMountedRef.current) {
-        refreshIntervalRef.current = window.setInterval(() => {
-          if (isMountedRef.current && !fetchInProgressRef.current && document.visibilityState !== 'hidden') {
-            console.log("Performing auto-refresh of reservation data");
-            fetchData().catch(err => {
-              console.error("Error during auto-refresh:", err);
-            });
-          }
-        }, 5 * 60 * 1000); // 5 minutes
-      }
-      
       return true; // Indicate success
     } catch (error) {
       console.error("Error during manual refresh:", error);
@@ -389,7 +378,7 @@ export const useReservations = () => {
     loading,
     error,
     fetchData,
-    refreshData, // New method for manual refresh
+    refreshData,
     handleStatusChange,
     handleUpdate,
     handleNewReservation,
