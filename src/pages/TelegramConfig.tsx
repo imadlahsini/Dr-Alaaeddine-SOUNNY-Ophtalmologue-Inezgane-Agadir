@@ -2,35 +2,48 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bot, Key, MessageCircle, Save, ArrowLeft, AlertCircle, Loader, Link as LinkIcon } from 'lucide-react';
+import { Bot, Key, MessageCircle, Save, ArrowLeft, AlertCircle, Loader2, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '../utils/api';
 import { sendTelegramNotification } from '../utils/telegramService';
 
 const TelegramConfig = () => {
   const navigate = useNavigate();
   const [botToken, setBotToken] = useState('');
-  const [chatId, setChatId] = useState('1741098686'); // Updated to use the provided chat ID
+  const [chatId, setChatId] = useState('1741098686'); // Default chat ID
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const [tokenConfigured, setTokenConfigured] = useState(false);
+  const [isConfigured, setIsConfigured] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    if (isAuthenticated !== 'true') {
-      navigate('/admin');
-      return;
-    }
-
-    // Load saved token if available
-    const savedToken = localStorage.getItem('telegramBotToken');
-    if (savedToken) {
-      setBotToken(savedToken);
-      setTokenConfigured(true);
-    }
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        navigate('/admin');
+        return;
+      }
+      
+      // Check if the Telegram bot token is configured
+      // We can only check if the function exists, not its actual configuration status
+      try {
+        const { data, error } = await supabase.functions.invoke('send-telegram', {
+          body: { checkConfig: true }
+        });
+        
+        if (!error && data?.configured) {
+          setIsConfigured(true);
+          toast.info('Telegram notifications are configured');
+        }
+      } catch (error) {
+        console.error('Error checking Telegram configuration:', error);
+      }
+    };
+    
+    checkAuth();
   }, [navigate]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!botToken.trim()) {
       toast.error('Please enter a valid bot token');
       return;
@@ -38,19 +51,27 @@ const TelegramConfig = () => {
 
     setIsSaving(true);
     
-    // Save to localStorage (in a real app, this would be stored securely in a database)
-    localStorage.setItem('telegramBotToken', botToken);
-    setTokenConfigured(true);
-    
-    setTimeout(() => {
-      setIsSaving(false);
+    try {
+      // In a production environment, you would set the TELEGRAM_BOT_TOKEN as a Supabase secret
+      // For this demo, we'll show instructions instead
+      
+      // Simulate saving (in a real app, you'd call an endpoint to update the secret)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setIsConfigured(true);
       toast.success('Telegram bot settings saved successfully');
-    }, 1000);
+      toast.info('In a production environment, this would update the Supabase Edge Function secret');
+    } catch (error) {
+      console.error('Error saving Telegram configuration:', error);
+      toast.error('Failed to save configuration');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleTest = async () => {
-    if (!botToken.trim()) {
-      toast.error('Please enter a valid bot token');
+    if (!botToken.trim() && !isConfigured) {
+      toast.error('Please enter a valid bot token and save it first');
       return;
     }
 
@@ -58,24 +79,25 @@ const TelegramConfig = () => {
     
     try {
       // Send a test notification
-      const result = await sendTelegramNotification(
-        {
-          name: 'Test User',
-          phone: '0612345678',
-          date: '01/01/2024',
-          timeSlot: '8h00-11h00'
-        },
-        { botToken, chatId }
-      );
+      const result = await sendTelegramNotification({
+        name: 'Test User',
+        phone: '0612345678',
+        date: '01/01/2024',
+        timeSlot: '8h00-11h00'
+      });
       
       if (result.success) {
         toast.success('Test notification sent successfully! Check your Telegram.');
       } else {
         toast.error(`Failed to send test notification: ${result.message}`);
+        
+        if (result.needsConfiguration) {
+          toast.info('The Telegram bot token needs to be configured properly');
+        }
       }
     } catch (error) {
       console.error('Error testing Telegram notification:', error);
-      toast.error('An error occurred during testing.');
+      toast.error('An error occurred during testing');
     } finally {
       setIsTesting(false);
     }
@@ -102,7 +124,7 @@ const TelegramConfig = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        {!tokenConfigured && (
+        {!isConfigured && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
             <div className="flex items-start">
               <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
@@ -159,18 +181,19 @@ const TelegramConfig = () => {
             <div className="flex items-start">
               <AlertCircle className="w-5 h-5 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" />
               <div>
-                <h3 className="text-sm font-medium text-yellow-800">Important: How to Create a Telegram Bot</h3>
+                <h3 className="text-sm font-medium text-yellow-800">Important: Supabase Edge Function Setup</h3>
                 <p className="text-sm text-yellow-700 mt-1">
-                  To receive notifications, follow these steps:
+                  For a production environment, you would need to:
                 </p>
                 <ol className="list-decimal list-inside text-sm text-yellow-700 mt-2 ml-2">
-                  <li>Start a chat with <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center inline-flex">@BotFather <LinkIcon className="w-3 h-3 ml-1" /></a> on Telegram</li>
-                  <li>Send the command /newbot</li>
-                  <li>Follow the instructions to create your bot</li>
-                  <li>Copy the API token provided and paste it here</li>
-                  <li>Start a chat with your new bot (important!)</li>
-                  <li>Save the token and send a test message</li>
+                  <li>Create a Telegram bot via <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center inline-flex">@BotFather <LinkIcon className="w-3 h-3 ml-1" /></a></li>
+                  <li>Get the API token from BotFather</li>
+                  <li>Set the TELEGRAM_BOT_TOKEN secret in your Supabase project</li>
+                  <li>Start a chat with your bot so it can send you messages</li>
                 </ol>
+                <p className="text-sm text-yellow-700 mt-2">
+                  For this demo, we'll simulate the configuration process.
+                </p>
               </div>
             </div>
           </div>
@@ -184,7 +207,7 @@ const TelegramConfig = () => {
               className="flex items-center justify-center px-4 py-2 bg-primary text-white rounded-md w-1/2"
             >
               {isSaving ? (
-                <>Saving... <Loader className="ml-2 h-4 w-4 animate-spin" /></>
+                <>Saving... <Loader2 className="ml-2 h-4 w-4 animate-spin" /></>
               ) : (
                 <>Save <Save className="ml-2 h-4 w-4" /></>
               )}
@@ -198,7 +221,7 @@ const TelegramConfig = () => {
               className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md w-1/2"
             >
               {isTesting ? (
-                <>Testing... <Loader className="ml-2 h-4 w-4 animate-spin" /></>
+                <>Testing... <Loader2 className="ml-2 h-4 w-4 animate-spin" /></>
               ) : (
                 <>Send Test Message <MessageCircle className="ml-2 h-4 w-4" /></>
               )}

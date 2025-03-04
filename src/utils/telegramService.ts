@@ -2,12 +2,10 @@
 /**
  * Telegram Notification Service
  * Sends notifications to Telegram when new reservations are made
+ * Uses a Supabase Edge Function for secure API communication
  */
 
-interface TelegramConfig {
-  chatId: string;
-  botToken: string;
-}
+import { supabase } from '../utils/api';
 
 interface ReservationData {
   name: string;
@@ -24,10 +22,10 @@ interface TelegramResult {
 
 /**
  * Sends a notification to Telegram about a new reservation
+ * Uses a Supabase Edge Function for secure API communication
  */
 export const sendTelegramNotification = async (
-  reservationData: ReservationData,
-  config?: TelegramConfig
+  reservationData: ReservationData
 ): Promise<TelegramResult> => {
   try {
     // Validate reservation data
@@ -40,71 +38,24 @@ export const sendTelegramNotification = async (
       };
     }
 
-    // Try to get the bot token from localStorage first, then fallback to environment variable
-    const savedBotToken = localStorage.getItem('telegramBotToken');
+    console.log("Sending notification via Supabase Edge Function:", reservationData);
     
-    // Default to environment variables if not provided
-    const chatId = config?.chatId || import.meta.env.VITE_TELEGRAM_CHAT_ID || "1741098686";
-    const botToken = config?.botToken || savedBotToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-
-    // If no bot token is available, return a configuration-needed result
-    if (!botToken) {
-      console.error("Telegram bot token is missing. Please configure it in the admin settings.");
-      return {
-        success: false,
-        message: "Telegram bot token is missing. Please configure it in the admin settings.",
-        needsConfiguration: true
-      };
-    }
-
-    const apiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
-    
-    // Format the message
-    const message = formatNotificationMessage(reservationData);
-    
-    console.log("Sending Telegram notification to chat ID:", chatId);
-    console.log("Using bot token:", botToken.substring(0, 6) + "...");
-    
-    // Send the message to Telegram
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: message,
-        parse_mode: 'HTML',
-      }),
+    // Call the Supabase Edge Function
+    const { data, error } = await supabase.functions.invoke("send-telegram", {
+      body: reservationData
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Telegram API responded with status ${response.status}: ${errorText}`);
-      return {
-        success: false,
-        message: `Telegram API error (${response.status}): ${errorText}`,
-        needsConfiguration: false
-      };
-    }
-
-    const data = await response.json();
     
-    if (!data.ok) {
-      console.error("Failed to send Telegram notification:", data.description);
+    if (error) {
+      console.error("Error calling Supabase Edge Function:", error);
       return {
         success: false,
-        message: data.description || "Failed to send Telegram notification",
-        needsConfiguration: data.error_code === 401 // Token might be invalid
+        message: error.message || "Error sending notification",
+        needsConfiguration: error.message?.includes("not configured") || false
       };
     }
     
-    console.log("Telegram notification sent successfully!");
-    return {
-      success: true,
-      message: "Telegram notification sent successfully",
-      needsConfiguration: false
-    };
+    // Return the result from the Edge Function
+    return data as TelegramResult;
   } catch (error) {
     console.error("Error sending Telegram notification:", error);
     return {
@@ -113,20 +64,4 @@ export const sendTelegramNotification = async (
       needsConfiguration: false
     };
   }
-};
-
-/**
- * Formats the notification message with reservation details
- */
-const formatNotificationMessage = (reservation: ReservationData): string => {
-  return `
-<b>🎉 New Reservation!</b>
-
-<b>👤 Name:</b> ${reservation.name}
-<b>📱 Phone:</b> ${reservation.phone}
-<b>📅 Date:</b> ${reservation.date}
-<b>⏰ Time:</b> ${reservation.timeSlot}
-
-<i>This reservation is currently pending confirmation.</i>
-`;
 };
