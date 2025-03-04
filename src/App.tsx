@@ -8,9 +8,15 @@ import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import TelegramConfig from './pages/TelegramConfig';
 import { Toaster } from "sonner";
+import { initializeNotifications } from './utils/pushNotificationService';
 import './App.css';
 
 function App() {
+  useEffect(() => {
+    // Initialize push notifications for admin users on app load
+    initializeNotifications();
+  }, []);
+
   return (
     <Router>
       <Routes>

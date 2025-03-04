@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import TimeSlotSelector from './TimeSlotSelector';
 import { sendTelegramNotification } from '../utils/telegramService';
+import { sendReservationNotification } from '../utils/pushNotificationService';
 import { createReservation } from '../utils/api';
 
 const translations = {
@@ -198,7 +199,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
       });
       
       if (result.success) {
-        // Reservation successful, now try to send the notification
+        // Reservation successful, try to send notifications
         let telegramSuccess = false;
         
         // Try to send Telegram notification (if available)
@@ -245,6 +246,19 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
           }
         } catch (telegramError) {
           console.warn('Telegram notification failed, but reservation was saved:', telegramError);
+        }
+        
+        // Send browser push notification for admins
+        try {
+          console.log('Attempting to send push notification for admins...');
+          sendReservationNotification({
+            name: formData.name,
+            phone: formData.phone,
+            date: formData.date,
+            timeSlot: formData.timeSlot
+          });
+        } catch (pushError) {
+          console.warn('Push notification failed, but reservation was saved:', pushError);
         }
         
         // Show success message to the user
