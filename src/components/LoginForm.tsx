@@ -27,6 +27,10 @@ const LoginForm = () => {
       const result = await loginAdmin(credentials);
       
       if (result.success) {
+        // Store authentication status in both localStorage and sessionStorage for better mobile support
+        localStorage.setItem('isAuthenticated', 'true');
+        sessionStorage.setItem('isAuthenticated', 'true');
+        
         toast.success('Login successful!');
         navigate('/dashboard');
       } else {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -37,8 +38,11 @@ const Dashboard: React.FC = () => {
           return;
         }
         
+        // Set authenticated status in both localStorage and sessionStorage for better mobile support
         localStorage.setItem('isAuthenticated', 'true');
+        sessionStorage.setItem('isAuthenticated', 'true');
         
+        // Initialize notifications after confirming admin status
         await initializeNotifications();
         
         await fetchData();
@@ -55,7 +59,9 @@ const Dashboard: React.FC = () => {
     
     return () => {
       removeRealtimeSubscription();
+      // Clean up both storage mechanisms when unmounting
       localStorage.removeItem('isAuthenticated');
+      sessionStorage.removeItem('isAuthenticated');
     };
   }, [navigate]);
 
@@ -168,6 +174,10 @@ const Dashboard: React.FC = () => {
       
       try {
         console.log('Attempting to send push notification for new reservation');
+        // Ensure admin status is set before sending notification
+        localStorage.setItem('isAuthenticated', 'true');
+        sessionStorage.setItem('isAuthenticated', 'true');
+        
         const notificationSent = sendReservationNotification({
           name: newReservation.name,
           phone: newReservation.phone,
@@ -271,6 +281,10 @@ const Dashboard: React.FC = () => {
     try {
       const result = await logoutAdmin();
       if (result.success) {
+        // Clear both storage mechanisms on logout
+        localStorage.removeItem('isAuthenticated');
+        sessionStorage.removeItem('isAuthenticated');
+        
         toast.success('Logged out successfully');
         navigate('/admin');
       } else {
