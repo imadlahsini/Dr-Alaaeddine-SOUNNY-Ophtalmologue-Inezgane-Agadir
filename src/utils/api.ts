@@ -1,15 +1,10 @@
-
 /**
  * API configuration and utility functions using Supabase
  */
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase configuration
-const SUPABASE_URL = 'https://jyppxlopcvcwrlmrsoan.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5cHB4bG9wY3Zjd3JsbXJzb2FuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEwOTQzNzMsImV4cCI6MjA1NjY3MDM3M30.4tkr_79mOojlbF4WtX8KEgATQ-ftJMW5plYgMDVYmpI';
-
-// Initialize Supabase client
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Supabase configuration - using our standard client
+import { supabase } from '../integrations/supabase/client';
 
 // Types
 export interface Reservation {

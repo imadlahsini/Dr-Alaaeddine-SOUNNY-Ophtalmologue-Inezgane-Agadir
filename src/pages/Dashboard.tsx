@@ -49,6 +49,7 @@ const Dashboard: React.FC = () => {
   const setupRealtimeSubscription = () => {
     console.log('Setting up real-time subscription to reservations...');
     
+    // Enable Supabase real-time for this table with channel
     const channel = supabase
       .channel('public:reservations')
       .on('postgres_changes', {
@@ -63,6 +64,12 @@ const Dashboard: React.FC = () => {
       })
       .subscribe((status) => {
         console.log('Real-time subscription status:', status);
+        
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to real-time updates for reservations');
+        } else {
+          console.warn('Failed to subscribe to real-time updates. Status:', status);
+        }
       });
       
     // Store channel reference for cleanup
@@ -82,6 +89,8 @@ const Dashboard: React.FC = () => {
   // Handle new reservation from real-time subscription
   const handleNewReservation = async (newRecord: any) => {
     try {
+      console.log('Processing new reservation from real-time update:', newRecord);
+      
       // Format the new reservation to match the Reservation interface
       const newReservation: Reservation = {
         id: newRecord.id,
@@ -92,10 +101,21 @@ const Dashboard: React.FC = () => {
         status: newRecord.status
       };
       
-      console.log('New reservation data:', newReservation);
+      console.log('Formatted new reservation data:', newReservation);
       
       // Add new reservation to state
-      setReservations(prev => [newReservation, ...prev]);
+      setReservations(prevReservations => {
+        // Check if this reservation already exists to avoid duplicates
+        const exists = prevReservations.some(res => res.id === newReservation.id);
+        if (exists) {
+          console.log('Reservation already exists in state, not adding duplicate');
+          return prevReservations;
+        }
+        
+        console.log('Adding new reservation to state');
+        // Add new reservation at the beginning of the array
+        return [newReservation, ...prevReservations];
+      });
       
       // Send notification for new reservation
       const notificationSent = sendReservationNotification({
@@ -105,7 +125,7 @@ const Dashboard: React.FC = () => {
         timeSlot: newReservation.timeSlot
       });
       
-      console.log('Notification sent:', notificationSent);
+      console.log('Browser notification sent:', notificationSent);
       
       // Show toast notification
       toast.success('New reservation received', {
