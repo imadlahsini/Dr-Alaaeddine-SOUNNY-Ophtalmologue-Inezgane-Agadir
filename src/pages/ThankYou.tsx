@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle, MapPin, Phone, Calendar, Clock, User } from 'lucide-react';
@@ -165,7 +164,7 @@ const ThankYou = () => {
         <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-background to-transparent z-10"></div>
         
         <iframe 
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2624.8132457082284!2d2.330007!3d48.868197!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47e66fcbe6997f3d%3A0x5c45774a9fa2ace7!2sPlace%20Saint-Augustin%2C%2075008%20Paris!5e0!3m2!1sen!2sfr!4v1715285947289!5m2!1sen!2sfr" 
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3442.605201761381!2d-9.526219!3d30.3621682!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xdb3c95c0fb6ec59%3A0xddd29694e1d79aee!2z2LAuINiz2YjZhtmKIERyLiBTb3Vubnkg2LfYqNmK2Kgg2KfZhNi52YrZiNmGIE9waHRhbG1vbG9ndWUgSW5lemdhbmUgLSBEY2hlaXJhIEFnYWRpciAtINiv2LTZitix2Kkg2KXZhtiy2YPYp9mGINij2YPYp9iv2YrYsQ!5e0!3m2!1sen!2sma!4v1741123148252!5m2!1sen!2sma" 
           className="w-full h-full border-0" 
           loading="lazy"
           title="Location"
