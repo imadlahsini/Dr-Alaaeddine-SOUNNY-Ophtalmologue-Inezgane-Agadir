@@ -46,10 +46,10 @@ const ThankYou = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-start p-0 relative overflow-hidden">
-      {/* Top Section - Reservation Details (65% of screen height) */}
+    <div className="h-screen bg-background flex flex-col items-center justify-between p-0 relative">
+      {/* Top Section - Reservation Details (reduced from 65% to 55% of screen height) */}
       <motion.div 
-        className="w-full max-w-md bg-white pt-8 pb-6 px-6 sm:px-8 text-center z-10 relative h-[65vh] overflow-y-auto"
+        className="w-full max-w-md bg-white pt-6 pb-4 px-6 sm:px-8 text-center z-10 relative h-[55vh] flex flex-col"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ 
@@ -66,9 +66,9 @@ const ThankYou = () => {
             damping: 20,
             delay: 0.2 
           }}
-          className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5 sm:mb-6"
+          className="w-14 h-14 sm:w-16 sm:h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"
         >
-          <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" />
+          <CheckCircle className="w-7 h-7 sm:w-8 sm:h-8 text-green-600" />
         </motion.div>
         
         <motion.h1
@@ -84,7 +84,7 @@ const ThankYou = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
-          className="text-gray-600 mb-6 sm:mb-8 text-sm sm:text-base"
+          className="text-gray-600 mb-4 sm:mb-5 text-sm sm:text-base"
         >
           Votre demande de rendez-vous a été reçue avec succès. <b>Nous vous contacterons bientôt pour confirmer.</b>
         </motion.p>
@@ -94,23 +94,23 @@ const ThankYou = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.5 }}
-          className="mb-6"
+          className="mb-4"
         >
-          <div className="bg-gray-50 border border-primary rounded-xl p-3 flex items-center gap-3 mb-3">
+          <div className="bg-gray-50 border border-primary rounded-xl p-2.5 flex items-center gap-3 mb-2">
             <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white">
               ✓
             </div>
             <div className="text-left font-semibold text-gray-800">Remplir le formulaire</div>
           </div>
           
-          <div className="bg-gray-50 border border-primary rounded-xl p-3 flex items-center gap-3 mb-3">
+          <div className="bg-gray-50 border border-primary rounded-xl p-2.5 flex items-center gap-3 mb-2">
             <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white">
               ✓
             </div>
             <div className="text-left font-semibold text-gray-800">Formulaire envoyé</div>
           </div>
           
-          <div className="bg-amber-50 border border-amber-400 rounded-xl p-3 flex items-center gap-3 animate-pulse">
+          <div className="bg-amber-50 border border-amber-400 rounded-xl p-2.5 flex items-center gap-3 animate-pulse">
             <div className="w-7 h-7 bg-amber-500 rounded-full flex items-center justify-center text-white">
               !
             </div>
@@ -124,7 +124,7 @@ const ThankYou = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.6 }}
-            className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 mb-6 shadow-sm border border-gray-100"
+            className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 mb-4 shadow-sm border border-gray-100 mt-auto"
           >
             <h2 className="font-bold text-gray-800 mb-3 text-left">Informations de réservation</h2>
             
@@ -159,8 +159,8 @@ const ThankYou = () => {
         )}
       </motion.div>
       
-      {/* Bottom Section - Map (35% of screen height) */}
-      <div className="w-full h-[35vh] absolute bottom-0 left-0 right-0 z-0">
+      {/* Bottom Section - Map (increased from 35% to 45% of screen height) */}
+      <div className="w-full h-[45vh] relative z-0">
         {/* Gradient fade overlay */}
         <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-background to-transparent z-10"></div>
         
