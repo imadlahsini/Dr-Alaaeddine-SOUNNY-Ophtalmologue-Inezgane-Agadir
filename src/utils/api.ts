@@ -37,7 +37,6 @@ export async function createReservation(reservationData: Omit<Reservation, 'id' 
   console.log('Starting reservation creation process...');
   
   try {
-    // Always use the real API since fallback is disabled
     const apiUrl = `${API_BASE_URL}${ENDPOINTS.CREATE_RESERVATION}`;
     console.log('Submitting reservation to:', apiUrl);
     console.log('Reservation data:', JSON.stringify(reservationData));
@@ -54,8 +53,6 @@ export async function createReservation(reservationData: Omit<Reservation, 'id' 
       },
       body: JSON.stringify(reservationData),
       mode: 'cors',
-      cache: 'no-cache',
-      credentials: 'omit',
     });
     
     console.log('Response status:', response.status);
@@ -79,10 +76,11 @@ export async function createReservation(reservationData: Omit<Reservation, 'id' 
   } catch (error) {
     console.error('Error creating reservation:', error);
     
-    // Provide more helpful error message
+    // Provide more detailed error message
     let errorMessage = 'Network error. Please try again.';
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
       errorMessage = 'Cannot connect to the server. Please check your network connection or contact support.';
+      console.error('Connection to server failed. Make sure the API_BASE_URL is correct and the server is running.');
     } else if (error instanceof Error) {
       errorMessage = `Error: ${error.message}`;
     }

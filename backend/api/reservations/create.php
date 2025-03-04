@@ -13,6 +13,7 @@ header("Content-Type: application/json");
 // Log request for debugging
 error_log("Received request to create.php with method: " . $_SERVER['REQUEST_METHOD']);
 error_log("Request headers: " . print_r(getallheaders(), true));
+error_log("Raw input: " . file_get_contents('php://input'));
 
 // Handle preflight request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -87,7 +88,12 @@ try {
         VALUES (?, ?, ?, ?, 'Pending')
     ");
     
-    $stmt->execute([$name, $phone, $date, $timeSlot]);
+    $result = $stmt->execute([$name, $phone, $date, $timeSlot]);
+    if (!$result) {
+        error_log("Database execution failed: " . print_r($stmt->errorInfo(), true));
+        throw new Exception("Database execution failed");
+    }
+    
     $reservationId = $pdo->lastInsertId();
     
     error_log("Reservation created successfully with ID: $reservationId");
@@ -97,9 +103,9 @@ try {
         'message' => 'Reservation created successfully',
         'id' => $reservationId
     ]);
-} catch (PDOException $e) {
+} catch (Exception $e) {
     // Log the error for debugging but don't expose details to client
     error_log("Database error: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Error creating reservation']);
+    echo json_encode(['success' => false, 'message' => 'Error creating reservation: ' . $e->getMessage()]);
 }
