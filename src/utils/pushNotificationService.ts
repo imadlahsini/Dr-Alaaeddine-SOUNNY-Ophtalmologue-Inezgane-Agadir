@@ -17,7 +17,9 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
   }
 
   try {
+    console.log('Requesting notification permission...');
     const permission = await Notification.requestPermission();
+    console.log('Permission request result:', permission);
     return permission === 'granted';
   } catch (error) {
     console.error('Error requesting notification permission:', error);
@@ -50,6 +52,7 @@ export const sendReservationNotification = (reservationData: {
   }
 
   try {
+    console.log('Creating notification for:', reservationData.name);
     // Create the notification with improved compatibility
     const notification = new Notification('New Reservation!', {
       body: `${reservationData.name} has booked for ${reservationData.date} at ${reservationData.timeSlot}`,

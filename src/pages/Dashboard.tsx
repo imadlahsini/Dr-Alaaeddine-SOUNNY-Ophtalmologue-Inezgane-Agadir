@@ -6,6 +6,8 @@ import { Loader2 } from 'lucide-react';
 import ReservationTable from '../components/ReservationTable';
 import NotificationSettings from '../components/NotificationSettings';
 import { fetchReservations, updateReservation, Reservation, logoutAdmin, getSession } from '../utils/api';
+import { supabase } from '../integrations/supabase/client';
+import { sendReservationNotification } from '../utils/pushNotificationService';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +28,9 @@ const Dashboard: React.FC = () => {
         
         // If authenticated, fetch reservations
         fetchData();
+        
+        // Set up real-time subscription
+        setupRealtimeSubscription();
       } catch (err) {
         console.error('Auth check error:', err);
         navigate('/admin');
@@ -33,7 +38,83 @@ const Dashboard: React.FC = () => {
     };
     
     checkAuth();
+    
+    // Cleanup function
+    return () => {
+      removeRealtimeSubscription();
+    };
   }, [navigate]);
+
+  // Set up real-time subscription to reservations table
+  const setupRealtimeSubscription = () => {
+    console.log('Setting up real-time subscription to reservations...');
+    
+    const channel = supabase
+      .channel('public:reservations')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'reservations'
+      }, (payload) => {
+        console.log('New reservation received via real-time:', payload);
+        
+        // Fetch the new reservation data to ensure it's complete and formatted correctly
+        handleNewReservation(payload.new);
+      })
+      .subscribe((status) => {
+        console.log('Real-time subscription status:', status);
+      });
+      
+    // Store channel reference for cleanup
+    (window as any).reservationsChannel = channel;
+  };
+  
+  // Remove real-time subscription on component unmount
+  const removeRealtimeSubscription = () => {
+    const channel = (window as any).reservationsChannel;
+    if (channel) {
+      console.log('Removing real-time subscription...');
+      supabase.removeChannel(channel);
+      (window as any).reservationsChannel = null;
+    }
+  };
+  
+  // Handle new reservation from real-time subscription
+  const handleNewReservation = async (newRecord: any) => {
+    try {
+      // Format the new reservation to match the Reservation interface
+      const newReservation: Reservation = {
+        id: newRecord.id,
+        name: newRecord.name,
+        phone: newRecord.phone,
+        date: newRecord.date,
+        timeSlot: newRecord.time_slot,
+        status: newRecord.status
+      };
+      
+      console.log('New reservation data:', newReservation);
+      
+      // Add new reservation to state
+      setReservations(prev => [newReservation, ...prev]);
+      
+      // Send notification for new reservation
+      const notificationSent = sendReservationNotification({
+        name: newReservation.name,
+        phone: newReservation.phone,
+        date: newReservation.date,
+        timeSlot: newReservation.timeSlot
+      });
+      
+      console.log('Notification sent:', notificationSent);
+      
+      // Show toast notification
+      toast.success('New reservation received', {
+        description: `${newReservation.name} has booked for ${newReservation.date}`
+      });
+    } catch (err) {
+      console.error('Error handling new reservation:', err);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
