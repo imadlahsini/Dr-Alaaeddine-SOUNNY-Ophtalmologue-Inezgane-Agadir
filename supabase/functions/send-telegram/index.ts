@@ -30,8 +30,33 @@ serve(async (req) => {
 
     console.log("Request received for send-telegram function");
 
-    // Parse request body
-    const data: TelegramRequest = await req.json();
+    // Parse request body with error handling
+    let data: TelegramRequest;
+    try {
+      // Check if request body exists
+      const bodyText = await req.text();
+      console.log("Raw request body:", bodyText);
+      
+      if (!bodyText || bodyText.trim() === '') {
+        throw new Error("Empty request body");
+      }
+      
+      data = JSON.parse(bodyText);
+      console.log("Parsed request data:", data);
+    } catch (parseError) {
+      console.error("Error parsing request body:", parseError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: `Invalid JSON in request body: ${parseError.message}`,
+          needsConfiguration: false,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
     
     // Handle configuration check request
     if (data.checkConfig) {

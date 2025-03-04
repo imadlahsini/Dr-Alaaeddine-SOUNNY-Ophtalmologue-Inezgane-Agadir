@@ -43,11 +43,8 @@ export const sendTelegramNotification = async (
     // Call the Supabase Edge Function with proper parameters
     const startTime = Date.now();
     
-    // The issue is here - we were using an 'options' property which doesn't exist
-    // in the FunctionInvokeOptions type. We need to use only supported parameters.
     const { data, error } = await supabase.functions.invoke("send-telegram", {
       body: reservationData,
-      // Removing the 'options' object as it's causing the TypeScript error
       headers: {
         'Content-Type': 'application/json',
       }
@@ -93,7 +90,10 @@ export const checkTelegramConfig = async (): Promise<{
 }> => {
   try {
     const { data, error } = await supabase.functions.invoke("send-telegram", {
-      body: { checkConfig: true }
+      body: { checkConfig: true },
+      headers: {
+        'Content-Type': 'application/json',
+      }
     });
     
     if (error) {
