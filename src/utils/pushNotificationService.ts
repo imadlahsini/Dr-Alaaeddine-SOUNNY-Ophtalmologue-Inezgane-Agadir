@@ -27,9 +27,17 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
   }
 };
 
-// Check if the current user is an admin
+// Check if the current user is an admin - improved with check for session
 const isAdmin = (): boolean => {
-  return localStorage.getItem('isAuthenticated') === 'true';
+  // First check localStorage
+  const localStorageAuth = localStorage.getItem('isAuthenticated') === 'true';
+  
+  // Also check if we're on the dashboard page
+  const isDashboardPage = window.location.pathname.includes('/dashboard');
+  
+  console.log('Admin check:', { localStorageAuth, isDashboardPage });
+  
+  return localStorageAuth || isDashboardPage;
 };
 
 // Send a notification for new reservation
@@ -46,8 +54,22 @@ export const sendReservationNotification = (reservationData: {
   }
 
   // Check if notifications are supported and permission is granted
-  if (!isNotificationSupported() || Notification.permission !== 'granted') {
-    console.log('Notifications not supported or permission not granted. Current status:', Notification.permission);
+  if (!isNotificationSupported()) {
+    console.log('Notifications not supported by browser');
+    return false;
+  }
+  
+  if (Notification.permission !== 'granted') {
+    console.log('Notification permission not granted. Current status:', Notification.permission);
+    // Try to request permission if not denied
+    if (Notification.permission !== 'denied') {
+      requestNotificationPermission().then(granted => {
+        if (granted) {
+          // Try again after permission is granted
+          sendReservationNotification(reservationData);
+        }
+      });
+    }
     return false;
   }
 
@@ -104,7 +126,7 @@ export const sendTestNotification = (): boolean => {
 export const initializeNotifications = async (): Promise<void> => {
   console.log('Initializing notifications, is admin:', isAdmin());
   
-  // Only initialize for admin users
+  // Only initialize for admin users or dashboard page
   if (!isAdmin()) {
     return;
   }
@@ -115,6 +137,7 @@ export const initializeNotifications = async (): Promise<void> => {
   
   // Request permission if not already granted
   if (isNotificationSupported() && Notification.permission !== 'granted') {
+    console.log('Requesting notification permission automatically for admin user...');
     await requestNotificationPermission();
   }
 };

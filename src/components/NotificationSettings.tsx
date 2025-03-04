@@ -1,6 +1,4 @@
-
 import React, { useState, useEffect } from 'react';
-import { Bell, BellOff, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
   requestNotificationPermission, 
@@ -9,112 +7,86 @@ import {
 } from '../utils/pushNotificationService';
 
 const NotificationSettings: React.FC = () => {
-  const [permissionStatus, setPermissionStatus] = useState<string>('default');
-  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [permissionStatus, setPermissionStatus] = useState(Notification.permission);
 
   useEffect(() => {
-    // Check if device is mobile
-    const checkMobile = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+    // Update permission status when it changes
+    const updateStatus = () => {
+      setPermissionStatus(Notification.permission);
     };
-    
-    setIsMobile(checkMobile());
-    
-    // Get current notification permission status
-    const status = getNotificationPermissionStatus();
-    setPermissionStatus(status);
-    
-    console.log('Device type:', checkMobile() ? 'mobile' : 'desktop');
-    console.log('Current notification permission status:', status);
+
+    // Subscribe to permission change events
+    navigator.permissions.query({ name: 'notifications' }).then(permissionStatus => {
+      permissionStatus.onchange = updateStatus;
+      setPermissionStatus(permissionStatus.state);
+    });
+
+    // Initial check
+    updateStatus();
+
+    // Clean up the subscription
+    return () => {
+      navigator.permissions.query({ name: 'notifications' }).then(permissionStatus => {
+        permissionStatus.onchange = null;
+      });
+    };
   }, []);
 
   const handleRequestPermission = async () => {
-    try {
-      const granted = await requestNotificationPermission();
-      console.log('Permission request result:', granted);
-      
-      if (granted) {
-        setPermissionStatus('granted');
-        toast.success('Notification permission granted!');
-      } else {
-        toast.error('Notification permission denied. Please update your browser settings.');
-        // Update status after permission request
-        const newStatus = getNotificationPermissionStatus();
-        setPermissionStatus(newStatus);
-        console.log('Updated permission status:', newStatus);
-      }
-    } catch (error) {
-      console.error('Error requesting notification permission:', error);
-      toast.error('Error requesting notification permissions');
+    const granted = await requestNotificationPermission();
+    if (granted) {
+      toast.success('Notification permission granted!');
+    } else {
+      toast.error('Notification permission not granted.');
     }
+    setPermissionStatus(Notification.permission);
   };
 
   const handleTestNotification = () => {
-    if (sendTestNotification()) {
-      toast.success('Test notification sent!');
+    const success = sendTestNotification();
+    if (success) {
+      toast.success('Test notification sent successfully!');
+    } else if (Notification.permission === 'denied') {
+      toast.error('Notification permission denied. Please enable notifications in your browser settings.');
+    } else if (Notification.permission === 'default') {
+      requestNotificationPermission().then(granted => {
+        if (granted) {
+          sendTestNotification();
+          toast.success('Notification permission granted! Test sent.');
+        } else {
+          toast.error('Notification permission not granted.');
+        }
+      });
     } else {
-      toast.error('Failed to send test notification');
+      toast.error('Failed to send test notification.');
     }
   };
 
-  // If browser doesn't support notifications
-  if (permissionStatus === 'not-supported') {
-    return (
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-        <div className="flex items-center">
-          <BellOff className="h-5 w-5 text-amber-500 mr-2" />
-          <span className="text-amber-700">
-            {isMobile 
-              ? "Push notifications aren't fully supported on mobile browsers. For best experience, use Chrome on desktop."
-              : "Your browser doesn't support push notifications"}
-          </span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white border rounded-lg p-4 shadow-sm mb-4">
-      <h3 className="text-lg font-medium mb-2">Reservation Notifications</h3>
-      <p className="text-gray-600 mb-3">
-        {permissionStatus === 'granted' 
-          ? 'You will receive notifications when new reservations are made.'
-          : 'Enable notifications to get alerts when new reservations are made.'}
-      </p>
-      
-      {permissionStatus !== 'granted' && (
-        <button
-          onClick={handleRequestPermission}
-          className="flex items-center bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md mr-2 mb-2"
-        >
-          <Bell className="h-4 w-4 mr-2" />
-          Enable Notifications
-        </button>
-      )}
-      
-      {permissionStatus === 'granted' && (
-        <>
-          <div className="flex items-center text-green-600 mb-3">
-            <Bell className="h-5 w-5 mr-2" />
-            <span>Notifications are enabled</span>
-          </div>
-          
+    <div className="mb-4">
+      <h2 className="text-lg font-semibold text-gray-700 mb-2">Notification Settings</h2>
+      <div className="flex items-center">
+        <p className="text-gray-600">
+          Notification Permission: {permissionStatus}
+        </p>
+        {permissionStatus === 'default' && (
+          <button
+            onClick={handleRequestPermission}
+            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded ml-2"
+          >
+            Request Permission
+          </button>
+        )}
+        {permissionStatus === 'denied' && (
+          <p className="text-red-500 ml-2">Please enable notifications in your browser settings.</p>
+        )}
           <button
             onClick={handleTestNotification}
-            className="flex items-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2"
           >
-            <Send className="h-4 w-4 mr-2" />
-            Send Test Notification
+            Test Notification
           </button>
-        </>
-      )}
-      
-      {isMobile && (
-        <p className="text-amber-600 text-sm mt-3">
-          Note: Notification support on mobile browsers is limited. For the best experience, use Chrome on desktop.
-        </p>
-      )}
+      </div>
     </div>
   );
 };

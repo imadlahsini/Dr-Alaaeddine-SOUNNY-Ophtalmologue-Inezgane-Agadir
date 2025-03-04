@@ -34,6 +34,10 @@ const Dashboard: React.FC = () => {
           return;
         }
         
+        localStorage.setItem('isAuthenticated', 'true');
+        
+        await initializeNotifications();
+        
         await fetchData();
         
         setupRealtimeSubscription();
@@ -48,6 +52,7 @@ const Dashboard: React.FC = () => {
     
     return () => {
       removeRealtimeSubscription();
+      localStorage.removeItem('isAuthenticated');
     };
   }, [navigate]);
 
@@ -158,12 +163,18 @@ const Dashboard: React.FC = () => {
         return [newReservation, ...prevReservations];
       });
       
-      sendReservationNotification({
-        name: newReservation.name,
-        phone: newReservation.phone,
-        date: newReservation.date,
-        timeSlot: newReservation.timeSlot
-      });
+      try {
+        console.log('Attempting to send push notification for new reservation');
+        const notificationSent = sendReservationNotification({
+          name: newReservation.name,
+          phone: newReservation.phone,
+          date: newReservation.date,
+          timeSlot: newReservation.timeSlot
+        });
+        console.log('Push notification sent successfully:', notificationSent);
+      } catch (notifError) {
+        console.error('Failed to send push notification:', notifError);
+      }
       
       toast.success('New reservation received', {
         description: `${newReservation.name} has booked for ${newReservation.date}`
