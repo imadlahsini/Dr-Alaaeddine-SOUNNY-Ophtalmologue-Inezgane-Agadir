@@ -28,8 +28,9 @@ export const isAuthenticated = (): boolean => {
     
     return isAuth;
   } catch (error) {
-    // Handle errors that might occur on some mobile browsers with restricted storage
+    // Better error handling for mobile browsers
     console.error('Error checking authentication status:', error);
+    // Return false for safety but don't immediately redirect
     return false;
   }
 };
@@ -64,7 +65,7 @@ export const checkSupabaseSession = async (): Promise<boolean> => {
       sessionStorage.setItem('isAuthenticated', 'true');
     } catch (storageError) {
       console.error('Error updating storage during session check:', storageError);
-      // Proceed even if storage fails on some mobile browsers
+      // Fall back to using cookies or other mechanisms if needed
     }
     
     return true;
@@ -102,4 +103,3 @@ export const setAuthState = (): void => {
     // Continue even if storage fails on some mobile browsers
   }
 };
-

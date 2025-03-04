@@ -27,10 +27,12 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const realtimeChannelRef = useRef<any>(null);
   const authCheckedRef = useRef(false);
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
     console.log("Dashboard mounting, checking authentication...");
-    
+    setHasMounted(true);
+
     const checkAuth = async () => {
       try {
         // Quick check first using local storage to prevent flicker
@@ -87,7 +89,10 @@ const Dashboard: React.FC = () => {
       }
     };
     
-    checkAuth();
+    // Only run this if component has mounted (fixes mobile issue)
+    if (hasMounted) {
+      checkAuth();
+    }
     
     const intervalId = setInterval(checkAuth, 5 * 60 * 1000); // Check auth every 5 minutes
     
@@ -96,8 +101,16 @@ const Dashboard: React.FC = () => {
       clearInterval(intervalId);
       removeRealtimeSubscription();
     };
-  }, [navigate]);
+  }, [navigate, hasMounted]);
 
+  // Ensure reservations state is initialized properly
+  useEffect(() => {
+    if (reservations.length === 0 && !loading && !error && authCheckedRef.current) {
+      console.log("No reservations found but authentication passed, retrying fetch...");
+      fetchData();
+    }
+  }, [reservations, loading, error]);
+  
   const setupRealtimeSubscription = () => {
     console.log('Setting up real-time subscription to reservations...');
     
@@ -379,12 +392,12 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-800">Reservations Dashboard</h1>
+    <div className="container mx-auto p-4 overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-0">Reservations Dashboard</h1>
         <button
           onClick={handleLogout}
-          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full sm:w-auto"
         >
           Logout
         </button>
@@ -392,11 +405,23 @@ const Dashboard: React.FC = () => {
       
       <NotificationSettings />
       
-      <ReservationTable
-        reservations={reservations}
-        onStatusChange={handleStatusChange}
-        onUpdate={handleUpdate}
-      />
+      {reservations.length === 0 ? (
+        <div className="mt-8 text-center p-6 bg-white rounded-lg shadow">
+          <p className="text-lg text-gray-600">No reservations found.</p>
+          <button 
+            onClick={fetchData}
+            className="mt-4 bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            Refresh
+          </button>
+        </div>
+      ) : (
+        <ReservationTable
+          reservations={reservations}
+          onStatusChange={handleStatusChange}
+          onUpdate={handleUpdate}
+        />
+      )}
     </div>
   );
 };
