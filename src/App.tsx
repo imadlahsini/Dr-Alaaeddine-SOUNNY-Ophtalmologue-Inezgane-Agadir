@@ -15,6 +15,60 @@ function App() {
   useEffect(() => {
     // Initialize push notifications for admin users on app load
     initializeNotifications();
+    
+    // Force a viewport meta tag update to ensure proper mobile scaling
+    const updateViewport = () => {
+      // Remove any existing viewport meta tags
+      const existingViewports = document.querySelectorAll('meta[name="viewport"]');
+      existingViewports.forEach(tag => tag.remove());
+      
+      // Add a new viewport meta tag with proper settings
+      const viewportMeta = document.createElement('meta');
+      viewportMeta.name = 'viewport';
+      viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0';
+      document.head.appendChild(viewportMeta);
+      
+      // Force layout recalculation
+      document.documentElement.style.height = '100%';
+      document.body.style.height = '100%';
+      document.body.style.minHeight = '100vh';
+      
+      console.log('Mobile viewport meta tag updated for better responsiveness');
+    };
+    
+    // Run viewport update
+    updateViewport();
+    
+    // Apply some base styles to ensure proper mobile rendering
+    const applyMobileStyles = () => {
+      const style = document.createElement('style');
+      style.textContent = `
+        @media (max-width: 768px) {
+          body {
+            overflow-x: hidden;
+            width: 100%;
+            min-height: 100vh;
+            position: relative;
+          }
+          
+          #root {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    };
+    
+    applyMobileStyles();
+    
+    // Clear session storage on app start to prevent stale flags
+    if (!sessionStorage.getItem('app_initialized')) {
+      console.log('First load: clearing session storage to prevent stale flags');
+      sessionStorage.clear();
+      sessionStorage.setItem('app_initialized', 'true');
+    }
   }, []);
 
   return (

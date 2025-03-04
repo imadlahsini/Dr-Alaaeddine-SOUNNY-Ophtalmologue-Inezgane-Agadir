@@ -29,7 +29,31 @@ export const useReservations = () => {
       console.log("FETCH: Reservation data received:", result);
       
       if (result.success) {
-        setReservations(result.data || []);
+        // Store the current updating IDs before updating state
+        const currentlyUpdating = Array.from(updatingReservationsRef.current);
+        console.log("FETCH: Currently updating reservation IDs:", currentlyUpdating);
+        
+        // If we have some reservations currently being updated, we need to preserve their local state
+        if (currentlyUpdating.length > 0 && reservations.length > 0) {
+          // Merge incoming data with locally modified data for items being updated
+          const mergedData = result.data?.map(newRes => {
+            // If this reservation is being updated, use our local version
+            if (currentlyUpdating.includes(newRes.id)) {
+              const localVersion = reservations.find(r => r.id === newRes.id);
+              if (localVersion) {
+                console.log(`FETCH: Preserving local changes for reservation ${newRes.id}`);
+                return localVersion;
+              }
+            }
+            return newRes;
+          }) || [];
+          
+          setReservations(mergedData);
+        } else {
+          // No active updates, just use the fresh data
+          setReservations(result.data || []);
+        }
+        
         setLastRefreshTime(new Date());
         console.log("FETCH: Successfully set reservations data:", result.data?.length || 0, "items");
       } else {
@@ -55,7 +79,7 @@ export const useReservations = () => {
       console.log("FETCH: Completed fetch process, setting loading to false");
       setLoading(false);
     }
-  }, []);
+  }, [reservations]);
 
   // Auto-refresh data every 5 minutes when component is mounted
   useEffect(() => {
@@ -86,25 +110,56 @@ export const useReservations = () => {
       return;
     }
     
+    console.log(`Starting status update for reservation ${id} to ${status}`);
     updatingReservationsRef.current.add(id);
     
+    // Optimistically update UI state
+    setReservations(prev =>
+      prev.map(res => (res.id === id ? { ...res, status } : res))
+    );
+    
     try {
-      console.log(`Updating reservation ${id} status to ${status}`);
+      console.log(`Sending API request to update reservation ${id} status to ${status}`);
       const result = await updateReservation(id, { status });
       
       if (result.success) {
-        // Update local state immediately
-        setReservations(prev =>
-          prev.map(res => (res.id === id ? { ...res, status } : res))
-        );
+        console.log(`Reservation ${id} status successfully updated on server`);
         toast.success('Reservation status updated successfully');
+        
+        // No need to update local state again since we did it optimistically
       } else {
+        console.error(`Failed to update reservation ${id} status:`, result.message);
         toast.error(result.message || 'Failed to update reservation status');
+        
+        // Revert the optimistic update
+        setReservations(prev =>
+          prev.map(res => {
+            if (res.id === id) {
+              // Try to find the original state
+              const originalRes = reservations.find(r => r.id === id);
+              return originalRes || res; // Fallback to current if original not found
+            }
+            return res;
+          })
+        );
       }
     } catch (err) {
       console.error('Error updating status:', err);
       toast.error('Network error. Please try again.');
+      
+      // Revert the optimistic update
+      setReservations(prev =>
+        prev.map(res => {
+          if (res.id === id) {
+            // Try to find the original state
+            const originalRes = reservations.find(r => r.id === id);
+            return originalRes || res; // Fallback to current if original not found
+          }
+          return res;
+        })
+      );
     } finally {
+      console.log(`Completed update process for reservation ${id}`);
       updatingReservationsRef.current.delete(id);
     }
   };
@@ -115,25 +170,56 @@ export const useReservations = () => {
       return;
     }
     
+    console.log(`Starting update for reservation ${id} with data:`, updatedData);
     updatingReservationsRef.current.add(id);
     
+    // Optimistically update UI state
+    setReservations(prev =>
+      prev.map(res => (res.id === id ? { ...res, ...updatedData } : res))
+    );
+    
     try {
-      console.log(`Updating reservation ${id} with data:`, updatedData);
+      console.log(`Sending API request to update reservation ${id}`);
       const result = await updateReservation(id, updatedData);
       
       if (result.success) {
-        // Update local state immediately
-        setReservations(prev =>
-          prev.map(res => (res.id === id ? { ...res, ...updatedData } : res))
-        );
+        console.log(`Reservation ${id} successfully updated on server`);
         toast.success('Reservation updated successfully');
+        
+        // No need to update local state again since we did it optimistically
       } else {
+        console.error(`Failed to update reservation ${id}:`, result.message);
         toast.error(result.message || 'Failed to update reservation');
+        
+        // Revert the optimistic update
+        setReservations(prev =>
+          prev.map(res => {
+            if (res.id === id) {
+              // Try to find the original state
+              const originalRes = reservations.find(r => r.id === id);
+              return originalRes || res; // Fallback to current if original not found
+            }
+            return res;
+          })
+        );
       }
     } catch (err) {
       console.error('Error updating reservation:', err);
       toast.error('Network error. Please try again.');
+      
+      // Revert the optimistic update
+      setReservations(prev =>
+        prev.map(res => {
+          if (res.id === id) {
+            // Try to find the original state
+            const originalRes = reservations.find(r => r.id === id);
+            return originalRes || res; // Fallback to current if original not found
+          }
+          return res;
+        })
+      );
     } finally {
+      console.log(`Completed update process for reservation ${id}`);
       updatingReservationsRef.current.delete(id);
     }
   };
@@ -162,6 +248,12 @@ export const useReservations = () => {
 
   const handleReservationUpdate = useCallback((updatedReservation: Reservation) => {
     console.log('Received reservation update via realtime:', updatedReservation);
+    
+    // Skip if we're currently updating this reservation ourselves
+    if (updatingReservationsRef.current.has(updatedReservation.id)) {
+      console.log(`Ignoring realtime update for reservation ${updatedReservation.id} as we're currently updating it`);
+      return;
+    }
     
     setReservations(prevReservations => {
       const reservationExists = prevReservations.some(res => res.id === updatedReservation.id);
@@ -234,7 +326,7 @@ export const useReservations = () => {
     handleUpdate,
     handleNewReservation,
     handleReservationUpdate,
-    handleReservationDelete, // New handler for deletion events
+    handleReservationDelete,
     setReservations,
     lastRefreshTime
   };

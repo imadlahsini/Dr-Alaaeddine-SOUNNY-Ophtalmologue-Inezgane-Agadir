@@ -18,7 +18,16 @@ export const useRealtimeSubscription = ({
 }: UseRealtimeSubscriptionProps) => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const channelRef = useRef<any>(null);
-  const toastShownRef = useRef(false); // Prevent duplicate toasts
+  const toastShownRef = useRef(false);
+  const toastTimeoutRef = useRef<number | null>(null);
+  
+  // Cleanup function to clear any existing timeouts
+  const clearToastTimeout = () => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+      toastTimeoutRef.current = null;
+    }
+  };
 
   useEffect(() => {
     console.log('Setting up real-time subscription hook...');
@@ -89,25 +98,36 @@ export const useRealtimeSubscription = ({
               console.log('Successfully subscribed to real-time updates');
               setIsSubscribed(true);
               
-              // Only show toast once per session
-              if (!toastShownRef.current) {
+              // Only show toast once per session and manage with sessionStorage
+              if (!toastShownRef.current && !sessionStorage.getItem('realtime_toast_shown')) {
                 toast.success('Real-time updates activated');
                 toastShownRef.current = true;
+                sessionStorage.setItem('realtime_toast_shown', 'true');
+                
+                // Clear the toast shown flag after 1 hour
+                clearToastTimeout();
+                toastTimeoutRef.current = window.setTimeout(() => {
+                  sessionStorage.removeItem('realtime_toast_shown');
+                  toastShownRef.current = false;
+                }, 60 * 60 * 1000); // 1 hour
               }
             } else if (status === REALTIME_SUBSCRIBE_STATES.TIMED_OUT) {
               console.error('Subscription timed out');
               setIsSubscribed(false);
               toast.error('Real-time updates timed out');
-              toastShownRef.current = false; // Reset so we can show again on reconnect
+              sessionStorage.removeItem('realtime_toast_shown');
+              toastShownRef.current = false;
             } else if (status === REALTIME_SUBSCRIBE_STATES.CLOSED) {
               console.error('Subscription closed');
               setIsSubscribed(false);
-              toastShownRef.current = false; // Reset so we can show again on reconnect
+              sessionStorage.removeItem('realtime_toast_shown');
+              toastShownRef.current = false;
             } else if (status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR) {
               console.error('Channel error occurred');
               setIsSubscribed(false);
               toast.error('Connection error with real-time service');
-              toastShownRef.current = false; // Reset so we can show again on reconnect
+              sessionStorage.removeItem('realtime_toast_shown');
+              toastShownRef.current = false;
               
               // Try to reconnect in 5 seconds
               setTimeout(() => {
@@ -122,13 +142,15 @@ export const useRealtimeSubscription = ({
         console.error('Error setting up real-time subscription:', err);
         toast.error('Failed to set up real-time updates');
         setIsSubscribed(false);
-        toastShownRef.current = false; // Reset so we can show again on reconnect
+        sessionStorage.removeItem('realtime_toast_shown');
+        toastShownRef.current = false;
       }
     };
 
     setupSubscription();
     
     return () => {
+      clearToastTimeout();
       removeSubscription();
     };
   }, [onNewReservation, onReservationUpdate, onReservationDelete]);
@@ -142,7 +164,6 @@ export const useRealtimeSubscription = ({
           console.log('Real-time subscription removed successfully');
           channelRef.current = null;
           setIsSubscribed(false);
-          toastShownRef.current = false; // Reset so we can show again on reconnect
         })
         .catch(err => {
           console.error('Error removing real-time subscription:', err);
