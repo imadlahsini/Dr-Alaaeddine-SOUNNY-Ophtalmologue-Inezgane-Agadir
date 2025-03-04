@@ -12,6 +12,7 @@ const TelegramConfig = () => {
   const [chatId, setChatId] = useState('1741098686'); // Updated to use the provided chat ID
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [tokenConfigured, setTokenConfigured] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -25,6 +26,7 @@ const TelegramConfig = () => {
     const savedToken = localStorage.getItem('telegramBotToken');
     if (savedToken) {
       setBotToken(savedToken);
+      setTokenConfigured(true);
     }
   }, [navigate]);
 
@@ -38,6 +40,7 @@ const TelegramConfig = () => {
     
     // Save to localStorage (in a real app, this would be stored securely in a database)
     localStorage.setItem('telegramBotToken', botToken);
+    setTokenConfigured(true);
     
     setTimeout(() => {
       setIsSaving(false);
@@ -55,7 +58,7 @@ const TelegramConfig = () => {
     
     try {
       // Send a test notification
-      const success = await sendTelegramNotification(
+      const result = await sendTelegramNotification(
         {
           name: 'Test User',
           phone: '0612345678',
@@ -65,10 +68,10 @@ const TelegramConfig = () => {
         { botToken, chatId }
       );
       
-      if (success) {
+      if (result.success) {
         toast.success('Test notification sent successfully! Check your Telegram.');
       } else {
-        toast.error('Failed to send test notification. Please check your bot token.');
+        toast.error(`Failed to send test notification: ${result.message}`);
       }
     } catch (error) {
       console.error('Error testing Telegram notification:', error);
@@ -99,6 +102,20 @@ const TelegramConfig = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
+        {!tokenConfigured && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="flex items-start">
+              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
+              <div>
+                <h3 className="text-sm font-medium text-red-800">Telegram Notifications Not Configured</h3>
+                <p className="text-sm text-red-700 mt-1">
+                  You need to configure a Telegram bot token to receive notifications for new reservations.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="flex items-center mb-6">
           <Bot className="w-6 h-6 text-primary mr-2" />
           <h2 className="text-lg font-semibold">Telegram Bot Settings</h2>
@@ -147,6 +164,13 @@ const TelegramConfig = () => {
                   To create a Telegram bot, message @BotFather on Telegram and follow the instructions.
                   Copy the API token it provides and paste it here.
                 </p>
+                <ol className="list-decimal list-inside text-sm text-yellow-700 mt-2 ml-2">
+                  <li>Start a chat with @BotFather on Telegram</li>
+                  <li>Send the command /newbot</li>
+                  <li>Follow the instructions to create your bot</li>
+                  <li>Copy the API token provided</li>
+                  <li>Start a chat with your new bot</li>
+                </ol>
               </div>
             </div>
           </div>

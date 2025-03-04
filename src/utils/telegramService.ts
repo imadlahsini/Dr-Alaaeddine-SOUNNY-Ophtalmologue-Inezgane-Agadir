@@ -16,13 +16,19 @@ interface ReservationData {
   timeSlot: string;
 }
 
+interface TelegramResult {
+  success: boolean;
+  message: string;
+  needsConfiguration: boolean;
+}
+
 /**
  * Sends a notification to Telegram about a new reservation
  */
 export const sendTelegramNotification = async (
   reservationData: ReservationData,
   config?: TelegramConfig
-): Promise<boolean> => {
+): Promise<TelegramResult> => {
   try {
     // Try to get the bot token from localStorage first, then fallback to environment variable
     const savedBotToken = localStorage.getItem('telegramBotToken');
@@ -31,10 +37,14 @@ export const sendTelegramNotification = async (
     const chatId = config?.chatId || import.meta.env.VITE_TELEGRAM_CHAT_ID || "1741098686";
     const botToken = config?.botToken || savedBotToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
 
-    // If no bot token is available, return false
+    // If no bot token is available, return a configuration-needed result
     if (!botToken) {
       console.error("Telegram bot token is missing. Please configure it in the admin settings.");
-      return false;
+      return {
+        success: false,
+        message: "Telegram bot token is missing. Please configure it in the admin settings.",
+        needsConfiguration: true
+      };
     }
 
     const apiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -62,14 +72,26 @@ export const sendTelegramNotification = async (
     
     if (!data.ok) {
       console.error("Failed to send Telegram notification:", data.description);
-      return false;
+      return {
+        success: false,
+        message: data.description || "Failed to send Telegram notification",
+        needsConfiguration: false
+      };
     }
     
     console.log("Telegram notification sent successfully!");
-    return true;
+    return {
+      success: true,
+      message: "Telegram notification sent successfully",
+      needsConfiguration: false
+    };
   } catch (error) {
     console.error("Error sending Telegram notification:", error);
-    return false;
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error",
+      needsConfiguration: false
+    };
   }
 };
 

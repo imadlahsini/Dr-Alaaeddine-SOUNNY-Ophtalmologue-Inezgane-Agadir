@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
 import { fr, ar } from 'date-fns/locale';
-import { Calendar, User, Phone, ArrowRight, Loader2 } from 'lucide-react';
+import { Calendar, User, Phone, ArrowRight, Loader2, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -209,6 +209,24 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
           });
           
           console.log('Telegram notification result:', telegramResult);
+          
+          // Handle configuration needed case
+          if (!telegramResult.success && telegramResult.needsConfiguration) {
+            // Only show admin message if user is authenticated
+            const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+            if (isAuthenticated) {
+              toast(
+                'Telegram notifications not configured',
+                {
+                  description: 'Go to Telegram Config to set up notifications',
+                  action: {
+                    label: 'Configure',
+                    onClick: () => navigate('/telegram-config')
+                  }
+                }
+              );
+            }
+          }
         } catch (telegramError) {
           console.warn('Telegram notification failed, but reservation was saved:', telegramError);
         }
