@@ -1,16 +1,28 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
 interface LanguageSwitcherProps {
   currentLanguage: 'fr' | 'ar' | 'tm';
   onLanguageChange: (lang: 'fr' | 'ar' | 'tm') => void;
+  initialPopupOpen?: boolean;
 }
 
-const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ currentLanguage, onLanguageChange }) => {
-  const [popupVisible, setPopupVisible] = useState(false);
+const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ 
+  currentLanguage, 
+  onLanguageChange, 
+  initialPopupOpen = false 
+}) => {
+  const [popupVisible, setPopupVisible] = useState(initialPopupOpen);
   const [closing, setClosing] = useState(false);
+
+  useEffect(() => {
+    // If initialPopupOpen is true, open the popup on component mount
+    if (initialPopupOpen) {
+      setPopupVisible(true);
+    }
+  }, [initialPopupOpen]);
 
   const languageLabels = {
     fr: 'Français',
@@ -47,10 +59,23 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ currentLanguage, on
         <span>{languageLabels[currentLanguage]}</span>
       </button>
 
+      {/* Backdrop with blur effect */}
       <AnimatePresence>
         {popupVisible && (
           <motion.div
-            className={`language-popup ${closing ? 'closing' : ''}`}
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleClose}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {popupVisible && (
+          <motion.div
+            className={`language-popup ${closing ? 'closing' : ''} z-50`}
             initial={{ y: '100%', opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}

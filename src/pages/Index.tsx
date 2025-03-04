@@ -19,14 +19,15 @@ const Index = () => {
       {/* Language selection button */}
       <LanguageSwitcher 
         currentLanguage={language} 
-        onLanguageChange={setLanguage} 
+        onLanguageChange={setLanguage}
+        initialPopupOpen={true} // Open popup on page load
       />
 
       {/* Logo */}
       <motion.img 
         src="https://sounny.ma/logo.webp" 
         alt="Logo" 
-        className="w-[120px] sm:w-[156px] mb-6 sm:mb-8"
+        className="w-[120px] sm:w-[156px] mb-4 sm:mb-6"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
@@ -34,7 +35,7 @@ const Index = () => {
 
       {/* Title */}
       <motion.h1 
-        className="text-2xl sm:text-3xl font-bold text-primary mb-6 sm:mb-8 text-center px-2"
+        className="text-2xl sm:text-3xl font-bold text-primary mb-4 sm:mb-6 text-center px-2"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.3 }}
