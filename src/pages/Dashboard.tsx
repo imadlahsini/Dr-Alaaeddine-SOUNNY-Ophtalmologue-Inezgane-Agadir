@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
 import ReservationTable from '../components/ReservationTable';
 import NotificationSettings from '../components/NotificationSettings';
 import { 
@@ -24,7 +24,6 @@ const Dashboard: React.FC = () => {
   const realtimeChannelRef = useRef<any>(null);
 
   useEffect(() => {
-    // Check if user is authenticated
     const checkAuth = async () => {
       try {
         const { data, error } = await getSession();
@@ -35,10 +34,8 @@ const Dashboard: React.FC = () => {
           return;
         }
         
-        // If authenticated, fetch reservations
         await fetchData();
         
-        // Set up real-time subscription
         setupRealtimeSubscription();
       } catch (err) {
         console.error('Auth check error:', err);
@@ -49,21 +46,17 @@ const Dashboard: React.FC = () => {
     
     checkAuth();
     
-    // Cleanup function
     return () => {
       removeRealtimeSubscription();
     };
   }, [navigate]);
 
-  // Set up real-time subscription to reservations table
   const setupRealtimeSubscription = () => {
     console.log('Setting up real-time subscription to reservations...');
     
     try {
-      // Clean up any existing subscription
       removeRealtimeSubscription();
       
-      // Create a new channel with more specific configuration
       const channel = supabase
         .channel('schema-db-changes')
         .on('postgres_changes', 
@@ -104,21 +97,22 @@ const Dashboard: React.FC = () => {
           if (status === 'SUBSCRIBED') {
             console.log('Successfully subscribed to real-time updates for reservations');
             toast.success('Real-time updates activated');
-          } else if (status === 'SUBSCRIPTION_ERROR') {
-            console.error('Failed to subscribe to real-time updates');
-            toast.error('Real-time updates failed to activate');
-          } else if (status === 'CHANNEL_ERROR') {
+          } else if (status === REALTIME_SUBSCRIBE_STATES.TIMED_OUT) {
+            console.error('Subscription timed out');
+            toast.error('Real-time updates timed out');
+          } else if (status === REALTIME_SUBSCRIBE_STATES.CLOSED) {
+            console.error('Subscription closed');
+            toast.error('Real-time connection closed');
+          } else if (status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR) {
             console.error('Channel error occurred');
             toast.error('Connection error with real-time service');
             
-            // Try to reconnect after a delay
             setTimeout(() => {
               setupRealtimeSubscription();
             }, 5000);
           }
         });
       
-      // Store channel reference for cleanup
       realtimeChannelRef.current = channel;
       console.log('Real-time subscription setup complete', channel);
     } catch (err) {
@@ -126,8 +120,7 @@ const Dashboard: React.FC = () => {
       toast.error('Failed to set up real-time updates');
     }
   };
-  
-  // Remove real-time subscription on component unmount
+
   const removeRealtimeSubscription = () => {
     const channel = realtimeChannelRef.current;
     if (channel) {
@@ -142,13 +135,11 @@ const Dashboard: React.FC = () => {
         });
     }
   };
-  
-  // Handle new reservation from real-time subscription
+
   const handleNewReservation = async (newRecord: any) => {
     try {
       console.log('Processing new reservation from real-time update:', newRecord);
       
-      // Format the new reservation using utility function
       const newReservation = transformReservationRecord(newRecord);
       
       if (!newReservation) {
@@ -156,11 +147,7 @@ const Dashboard: React.FC = () => {
         return;
       }
       
-      console.log('Formatted new reservation data:', newReservation);
-      
-      // Add new reservation to state with deduplication check
       setReservations(prevReservations => {
-        // Check if this reservation already exists to avoid duplicates
         const exists = prevReservations.some(res => res.id === newReservation.id);
         if (exists) {
           console.log('Reservation already exists in state, not adding duplicate');
@@ -168,11 +155,9 @@ const Dashboard: React.FC = () => {
         }
         
         console.log('Adding new reservation to state');
-        // Add new reservation at the beginning of the array
         return [newReservation, ...prevReservations];
       });
       
-      // Send browser notification for new reservation
       sendReservationNotification({
         name: newReservation.name,
         phone: newReservation.phone,
@@ -180,7 +165,6 @@ const Dashboard: React.FC = () => {
         timeSlot: newReservation.timeSlot
       });
       
-      // Show toast notification
       toast.success('New reservation received', {
         description: `${newReservation.name} has booked for ${newReservation.date}`
       });
@@ -188,13 +172,11 @@ const Dashboard: React.FC = () => {
       console.error('Error handling new reservation:', err);
     }
   };
-  
-  // Handle reservation update from real-time subscription
+
   const handleReservationUpdate = (updatedRecord: any) => {
     try {
       console.log('Processing reservation update from real-time:', updatedRecord);
       
-      // Transform the updated record
       const updatedReservation = transformReservationRecord(updatedRecord);
       
       if (!updatedReservation) {
@@ -202,7 +184,6 @@ const Dashboard: React.FC = () => {
         return;
       }
       
-      // Update the state with the changed reservation
       setReservations(prevReservations => 
         prevReservations.map(res => 
           res.id === updatedReservation.id ? updatedReservation : res
