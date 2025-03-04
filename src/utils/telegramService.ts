@@ -30,18 +30,12 @@ export const sendTelegramNotification = async (
   config?: TelegramConfig
 ): Promise<TelegramResult> => {
   try {
-    console.log('Starting Telegram notification process...');
-    console.log('Reservation data:', JSON.stringify(reservationData));
-    
     // Try to get the bot token from localStorage first, then fallback to environment variable
     const savedBotToken = localStorage.getItem('telegramBotToken');
     
     // Default to environment variables if not provided
     const chatId = config?.chatId || import.meta.env.VITE_TELEGRAM_CHAT_ID || "1741098686";
     const botToken = config?.botToken || savedBotToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-
-    console.log('Using chatId:', chatId);
-    console.log('Bot token available:', !!botToken);
 
     // If no bot token is available, return a configuration-needed result
     if (!botToken) {
@@ -60,10 +54,8 @@ export const sendTelegramNotification = async (
     
     console.log("Sending Telegram notification to chat ID:", chatId);
     console.log("Using bot token:", botToken.substring(0, 6) + "...");
-    console.log("Message content:", message);
     
     // Send the message to Telegram
-    console.log("Making request to Telegram API...");
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -76,9 +68,7 @@ export const sendTelegramNotification = async (
       }),
     });
 
-    console.log("Telegram API response status:", response.status);
     const data = await response.json();
-    console.log("Telegram API response data:", data);
     
     if (!data.ok) {
       console.error("Failed to send Telegram notification:", data.description);
