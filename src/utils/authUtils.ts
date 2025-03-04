@@ -9,12 +9,28 @@ import { supabase } from '../integrations/supabase/client';
 export const isAuthenticated = (): boolean => {
   try {
     console.log("Checking authentication status...");
-    const localAuth = localStorage.getItem('isAuthenticated') === 'true';
-    const sessionAuth = sessionStorage.getItem('isAuthenticated') === 'true';
+    
+    // Try to access localStorage - this might fail on some mobile browsers
+    let localAuth = false;
+    let sessionAuth = false;
+    let localExpiry = null;
+    let sessionExpiry = null;
+    
+    try {
+      localAuth = localStorage.getItem('isAuthenticated') === 'true';
+      localExpiry = localStorage.getItem('authExpiry');
+    } catch (storageError) {
+      console.warn("Could not access localStorage:", storageError);
+    }
+    
+    try {
+      sessionAuth = sessionStorage.getItem('isAuthenticated') === 'true';
+      sessionExpiry = sessionStorage.getItem('authExpiry');
+    } catch (storageError) {
+      console.warn("Could not access sessionStorage:", storageError);
+    }
     
     // Check for session expiry
-    const localExpiry = localStorage.getItem('authExpiry');
-    const sessionExpiry = sessionStorage.getItem('authExpiry');
     const now = Date.now();
     
     const localExpired = localExpiry ? parseInt(localExpiry) < now : true;
@@ -24,7 +40,9 @@ export const isAuthenticated = (): boolean => {
     console.log(`Auth status: ${isAuth ? 'Authenticated' : 'Not authenticated'}`);
     
     // Also verify with Supabase session asynchronously
-    checkSupabaseSession().catch(err => console.error('Session check error:', err));
+    if (isAuth) {
+      checkSupabaseSession().catch(err => console.error('Session check error:', err));
+    }
     
     return isAuth;
   } catch (error) {
@@ -36,7 +54,7 @@ export const isAuthenticated = (): boolean => {
 };
 
 // Verify the Supabase session and update local storage accordingly
-export const checkSupabaseSession = async (): Promise<boolean> => {
+export async function checkSupabaseSession(): Promise<boolean> {
   try {
     console.log("Verifying Supabase session...");
     const { data, error } = await supabase.auth.getSession();
@@ -65,7 +83,15 @@ export const checkSupabaseSession = async (): Promise<boolean> => {
       sessionStorage.setItem('isAuthenticated', 'true');
     } catch (storageError) {
       console.error('Error updating storage during session check:', storageError);
-      // Fall back to using cookies or other mechanisms if needed
+      
+      // Try to use sessionStorage as fallback if localStorage fails
+      try {
+        sessionStorage.setItem('authExpiry', expiryTime.toString());
+        sessionStorage.setItem('isAuthenticated', 'true');
+      } catch (sessionError) {
+        console.error('Both storage methods failed:', sessionError);
+        // At this point we could try cookies or other alternatives
+      }
     }
     
     return true;
@@ -73,16 +99,27 @@ export const checkSupabaseSession = async (): Promise<boolean> => {
     console.error('Error checking Supabase session:', error);
     return false;
   }
-};
+}
 
 // Clear authentication state from storage
 export const clearAuthState = (): void => {
   try {
     console.log("Clearing authentication state...");
-    localStorage.removeItem('isAuthenticated');
-    sessionStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('authExpiry');
-    sessionStorage.removeItem('authExpiry');
+    
+    try {
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('authExpiry');
+    } catch (e) {
+      console.warn("Could not clear localStorage:", e);
+    }
+    
+    try {
+      sessionStorage.removeItem('isAuthenticated');
+      sessionStorage.removeItem('authExpiry');
+    } catch (e) {
+      console.warn("Could not clear sessionStorage:", e);
+    }
+    
   } catch (error) {
     console.error('Error clearing auth state:', error);
   }
@@ -94,12 +131,29 @@ export const setAuthState = (): void => {
     console.log("Setting authentication state...");
     const expiryTime = Date.now() + (24 * 60 * 60 * 1000); // 24 hours from now
     
-    localStorage.setItem('isAuthenticated', 'true');
-    sessionStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('authExpiry', expiryTime.toString());
-    sessionStorage.setItem('authExpiry', expiryTime.toString());
+    let storedSuccessfully = false;
+    
+    try {
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('authExpiry', expiryTime.toString());
+      storedSuccessfully = true;
+    } catch (e) {
+      console.warn("Failed to use localStorage:", e);
+    }
+    
+    try {
+      sessionStorage.setItem('isAuthenticated', 'true');
+      sessionStorage.setItem('authExpiry', expiryTime.toString());
+      storedSuccessfully = true;
+    } catch (e) {
+      console.warn("Failed to use sessionStorage:", e);
+    }
+    
+    if (!storedSuccessfully) {
+      console.error("Could not store authentication state in any storage mechanism");
+      // Could implement cookie fallback here
+    }
   } catch (error) {
     console.error('Error setting auth state:', error);
-    // Continue even if storage fails on some mobile browsers
   }
 };

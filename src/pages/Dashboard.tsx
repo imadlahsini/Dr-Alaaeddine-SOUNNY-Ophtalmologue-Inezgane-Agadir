@@ -28,29 +28,43 @@ const Dashboard: React.FC = () => {
   const realtimeChannelRef = useRef<any>(null);
   const authCheckedRef = useRef(false);
   const [hasMounted, setHasMounted] = useState(false);
+  const dataFetchAttemptedRef = useRef(false);
+
+  // Explicitly log when component mounts and unmounts to track lifecycle
+  useEffect(() => {
+    console.log("===== Dashboard component MOUNTED =====");
+    setHasMounted(true);
+    
+    return () => {
+      console.log("===== Dashboard component UNMOUNTED =====");
+    };
+  }, []);
 
   useEffect(() => {
-    console.log("Dashboard mounting, checking authentication...");
-    setHasMounted(true);
-
+    if (!hasMounted) return; // Don't run until mounting is complete
+    
+    console.log("Dashboard authentication check starting...");
+    
     const checkAuth = async () => {
       try {
+        console.log("AUTH CHECK: Starting authentication verification");
+        
         // Quick check first using local storage to prevent flicker
         if (!isAuthenticated()) {
-          console.log('Not authenticated based on local storage check');
+          console.log('AUTH CHECK: Not authenticated based on local storage check');
           toast.error('Session expired. Please login again.');
           clearAuthState();
           navigate('/admin');
           return;
         }
         
-        console.log("Local auth check passed, verifying with Supabase...");
+        console.log("AUTH CHECK: Local auth check passed, verifying with Supabase...");
         
         // Then verify with Supabase
         const { data, error } = await getSession();
         
         if (error) {
-          console.error('Session error:', error);
+          console.error('AUTH CHECK: Session error:', error);
           toast.error('Authentication error. Please login again.');
           clearAuthState();
           navigate('/admin');
@@ -58,55 +72,79 @@ const Dashboard: React.FC = () => {
         }
         
         if (!data.session) {
-          console.log('No active session found in Supabase check');
+          console.log('AUTH CHECK: No active session found in Supabase check');
           toast.error('Session expired. Please login again.');
           clearAuthState();
           navigate('/admin');
           return;
         }
         
-        console.log("Supabase authentication verified successfully");
+        console.log("AUTH CHECK: Supabase authentication verified successfully");
         
         // Renew authentication status
         setAuthState();
         
         if (!authCheckedRef.current) {
           authCheckedRef.current = true;
+          console.log("AUTH CHECK: First successful auth check, proceeding to fetch data");
+          
+          dataFetchAttemptedRef.current = true;
           try {
             await fetchData();
             setupRealtimeSubscription();
           } catch (fetchError) {
-            console.error("Error in initial data fetch:", fetchError);
+            console.error("AUTH CHECK: Error in initial data fetch:", fetchError);
             setError("Failed to load reservations. Please try refreshing the page.");
             setLoading(false);
           }
         }
       } catch (err) {
-        console.error('Auth check error:', err);
+        console.error('AUTH CHECK: Uncaught auth check error:', err);
         toast.error('Authentication error. Please login again.');
         clearAuthState();
         navigate('/admin');
       }
     };
-    
-    // Only run this if component has mounted (fixes mobile issue)
-    if (hasMounted) {
-      checkAuth();
-    }
+
+    checkAuth();
     
     const intervalId = setInterval(checkAuth, 5 * 60 * 1000); // Check auth every 5 minutes
     
     return () => {
-      console.log("Dashboard unmounting, cleaning up...");
+      console.log("Dashboard auth check cleanup, removing interval and realtime subscription");
       clearInterval(intervalId);
       removeRealtimeSubscription();
     };
   }, [navigate, hasMounted]);
 
+  // Special catch-all in case the main authentication effect didn't initiate data fetching
+  useEffect(() => {
+    if (hasMounted && authCheckedRef.current && !dataFetchAttemptedRef.current && loading) {
+      console.log("SAFETY CHECK: Data fetch not attempted yet despite auth being checked. Forcing fetch...");
+      dataFetchAttemptedRef.current = true;
+      fetchData();
+    }
+  }, [hasMounted, loading]);
+
+  // Add a loading timeout to ensure we don't stay in loading state forever
+  useEffect(() => {
+    if (!hasMounted || !loading) return;
+    
+    const loadingTimeoutId = setTimeout(() => {
+      if (loading) {
+        console.log("TIMEOUT: Loading state has been active for too long, forcing reset");
+        setLoading(false);
+        setError("Loading timed out. Please try refreshing the page.");
+      }
+    }, 10000); // 10 second timeout for loading state
+    
+    return () => clearTimeout(loadingTimeoutId);
+  }, [loading, hasMounted]);
+
   // Ensure reservations state is initialized properly
   useEffect(() => {
-    if (reservations.length === 0 && !loading && !error && authCheckedRef.current) {
-      console.log("No reservations found but authentication passed, retrying fetch...");
+    if (reservations.length === 0 && !loading && !error && authCheckedRef.current && dataFetchAttemptedRef.current) {
+      console.log("POST-LOAD CHECK: No reservations found but authentication passed, retrying fetch...");
       fetchData();
     }
   }, [reservations, loading, error]);
@@ -269,17 +307,20 @@ const Dashboard: React.FC = () => {
   };
 
   const fetchData = async () => {
-    console.log("Fetching reservation data...");
+    console.log("FETCH: Starting reservation data fetch...");
     setLoading(true);
     setError(null);
 
     try {
       const result = await fetchReservations();
-      console.log("Reservation data received:", result);
+      console.log("FETCH: Reservation data received:", result);
       
       if (result.success) {
         setReservations(result.data || []);
+        console.log("FETCH: Successfully set reservations data:", result.data?.length || 0, "items");
       } else {
+        console.error("FETCH: API reported error:", result.message);
+        
         if (result.message === 'Not authenticated') {
           clearAuthState();
           toast.error('Your session has expired. Please login again.');
@@ -291,10 +332,11 @@ const Dashboard: React.FC = () => {
         toast.error(result.message || 'Failed to fetch reservations');
       }
     } catch (err) {
-      console.error('Error fetching data:', err);
+      console.error('FETCH: Error fetching data:', err);
       setError('Network error. Please try again.');
       toast.error('Network error. Please try again.');
     } finally {
+      console.log("FETCH: Completed fetch process, setting loading to false");
       setLoading(false);
     }
   };
@@ -335,7 +377,7 @@ const Dashboard: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      console.log("Logging out...");
+      console.log("LOGOUT: Initiating logout process...");
       removeRealtimeSubscription();
       
       const result = await logoutAdmin();
@@ -349,18 +391,21 @@ const Dashboard: React.FC = () => {
       
       navigate('/admin');
     } catch (err) {
-      console.error('Error during logout:', err);
+      console.error('LOGOUT: Error during logout:', err);
       clearAuthState();
       toast.error('Error during logout, but local session cleared');
       navigate('/admin');
     }
   };
 
+  console.log("RENDER STATE: loading=", loading, "error=", error, "reservations.length=", reservations.length);
+
   if (loading) {
     return (
-      <div className="flex flex-col justify-center items-center h-screen">
+      <div className="flex flex-col justify-center items-center min-h-[80vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-        <span>Loading reservations...</span>
+        <span className="text-lg">Loading reservations...</span>
+        <p className="text-sm text-gray-500 mt-2">Please wait while we load your dashboard</p>
       </div>
     );
   }
