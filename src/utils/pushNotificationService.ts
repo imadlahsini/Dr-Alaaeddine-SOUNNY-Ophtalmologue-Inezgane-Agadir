@@ -4,9 +4,9 @@
  * Handles browser push notifications for admins when new reservations are made
  */
 
-// Check if browser supports notifications
+// Improved check if browser supports notifications
 const isNotificationSupported = (): boolean => {
-  return 'Notification' in window;
+  return 'Notification' in window && 'permission' in Notification;
 };
 
 // Request notification permission
@@ -45,18 +45,21 @@ export const sendReservationNotification = (reservationData: {
 
   // Check if notifications are supported and permission is granted
   if (!isNotificationSupported() || Notification.permission !== 'granted') {
-    console.log('Notifications not supported or permission not granted');
+    console.log('Notifications not supported or permission not granted. Current status:', Notification.permission);
     return false;
   }
 
   try {
-    // Create the notification
+    // Create the notification with improved compatibility
     const notification = new Notification('New Reservation!', {
       body: `${reservationData.name} has booked for ${reservationData.date} at ${reservationData.timeSlot}`,
       icon: '/favicon.ico', // Use site favicon as notification icon
       tag: 'new-reservation', // Tag for grouping similar notifications
-      // Removed the unsupported 'renotify' property
+      requireInteraction: true, // Keep notification visible until user interacts with it
+      vibrate: [200, 100, 200] // Vibration pattern for mobile devices
     });
+
+    console.log('Notification created successfully');
 
     // Add click handler to open dashboard when notification is clicked
     notification.onclick = () => {
@@ -71,13 +74,43 @@ export const sendReservationNotification = (reservationData: {
   }
 };
 
+// Test notification to verify permissions and functionality
+export const sendTestNotification = (): boolean => {
+  if (!isNotificationSupported() || Notification.permission !== 'granted') {
+    console.log('Cannot send test notification - permissions not granted');
+    return false;
+  }
+
+  try {
+    const notification = new Notification('Test Notification', {
+      body: 'This is a test notification. If you can see this, notifications are working correctly.',
+      icon: '/favicon.ico'
+    });
+    
+    notification.onclick = () => {
+      window.focus();
+    };
+    
+    return true;
+  } catch (error) {
+    console.error('Error sending test notification:', error);
+    return false;
+  }
+};
+
 // Initialize notifications on page load
 export const initializeNotifications = async (): Promise<void> => {
+  console.log('Initializing notifications, is admin:', isAdmin());
+  
   // Only initialize for admin users
   if (!isAdmin()) {
     return;
   }
 
+  // Log current notification support and status
+  console.log('Notification supported:', isNotificationSupported());
+  console.log('Current permission status:', Notification.permission);
+  
   // Request permission if not already granted
   if (isNotificationSupported() && Notification.permission !== 'granted') {
     await requestNotificationPermission();

@@ -251,12 +251,13 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
         // Send browser push notification for admins
         try {
           console.log('Attempting to send push notification for admins...');
-          sendReservationNotification({
+          const notificationSent = sendReservationNotification({
             name: formData.name,
             phone: formData.phone,
             date: formData.date,
             timeSlot: formData.timeSlot
           });
+          console.log('Push notification sent:', notificationSent);
         } catch (pushError) {
           console.warn('Push notification failed, but reservation was saved:', pushError);
         }
