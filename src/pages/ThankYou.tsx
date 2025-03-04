@@ -43,9 +43,10 @@ const ThankYou = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 sm:p-6">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-start p-0 relative overflow-hidden">
+      {/* Top Half - Reservation Details */}
       <motion.div 
-        className="max-w-md w-full bg-white rounded-[20px] shadow-md p-6 sm:p-8 text-center"
+        className="w-full max-w-md bg-white pt-8 pb-6 px-6 sm:px-8 text-center z-10 relative"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ 
@@ -147,41 +148,6 @@ const ThankYou = () => {
           </motion.div>
         )}
         
-        {/* Google Maps embed */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.7 }}
-          className="mb-6"
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <MapPin className="w-5 h-5 text-primary" />
-            <h3 className="font-bold text-gray-800 text-left">Localisation</h3>
-          </div>
-          
-          <div className="rounded-xl overflow-hidden h-48 w-full">
-            <iframe 
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2624.9916256937845!2d2.373522315674894!3d48.86363707928882!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47e66e1ee61f31cf%3A0xc86ec9eaddfd84bc!2s75011%20Paris%2C%20France!5e0!3m2!1sen!2sus!4v1644330078503!5m2!1sen!2sus" 
-              className="w-full h-full border-0" 
-              loading="lazy"
-              title="Location"
-              referrerPolicy="no-referrer-when-downgrade"
-            ></iframe>
-          </div>
-          
-          <div className="mt-2">
-            <a 
-              href="https://maps.app.goo.gl/XirUbciG7u1597hZ6" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-primary hover:underline text-sm flex items-center justify-center gap-1"
-            >
-              <MapPin className="w-4 h-4" />
-              Ouvrir dans Google Maps
-            </a>
-          </div>
-        </motion.div>
-        
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -197,8 +163,32 @@ const ThankYou = () => {
         </motion.div>
       </motion.div>
       
+      {/* Bottom Half - Map Background */}
+      <div className="w-full h-[50vh] absolute bottom-0 left-0 right-0 z-0">
+        <iframe 
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2624.9916256937845!2d2.373522315674894!3d48.86363707928882!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47e66e1ee61f31cf%3A0xc86ec9eaddfd84bc!2s75011%20Paris%2C%20France!5e0!3m2!1sen!2sus!4v1644330078503!5m2!1sen!2sus" 
+          className="w-full h-full border-0" 
+          loading="lazy"
+          title="Location"
+          referrerPolicy="no-referrer-when-downgrade"
+        ></iframe>
+      </div>
+      
+      {/* Map Link Overlay */}
+      <div className="absolute bottom-20 left-0 right-0 flex justify-center z-10">
+        <a 
+          href="https://maps.app.goo.gl/XirUbciG7u1597hZ6" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="bg-white/90 backdrop-blur-sm text-primary hover:bg-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 transition-all hover:shadow-xl"
+        >
+          <MapPin className="w-4 h-4" />
+          Ouvrir dans Google Maps
+        </a>
+      </div>
+      
       {/* Floating action buttons */}
-      <div className="fixed bottom-5 right-5 flex flex-col gap-3">
+      <div className="fixed bottom-5 right-5 flex flex-col gap-3 z-20">
         <a 
           href="https://wa.me/" 
           className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-green-600 transition-transform hover:scale-110"
