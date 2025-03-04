@@ -14,7 +14,10 @@ import {
   transformReservationRecord 
 } from '../utils/api';
 import { supabase } from '../integrations/supabase/client';
-import { sendReservationNotification } from '../utils/pushNotificationService';
+import { 
+  sendReservationNotification,
+  initializeNotifications 
+} from '../utils/pushNotificationService';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();

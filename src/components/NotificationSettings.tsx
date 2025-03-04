@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { 
   requestNotificationPermission, 
   getNotificationPermissionStatus,
-  sendTestNotification
+  sendTestNotification,
+  initializeNotifications
 } from '../utils/pushNotificationService';
 
 const NotificationSettings: React.FC = () => {
@@ -18,7 +20,10 @@ const NotificationSettings: React.FC = () => {
     // Subscribe to permission change events
     navigator.permissions.query({ name: 'notifications' }).then(permissionStatus => {
       permissionStatus.onchange = updateStatus;
-      setPermissionStatus(permissionStatus.state);
+      // Map PermissionState to Notification.permission values
+      // PermissionState can be 'granted', 'denied', 'prompt', but we need to map 'prompt' to 'default'
+      const mappedState = permissionStatus.state === 'prompt' ? 'default' : permissionStatus.state;
+      setPermissionStatus(mappedState as NotificationPermission);
     });
 
     // Initial check
