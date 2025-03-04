@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import ReservationTable from '../components/ReservationTable';
+import NotificationSettings from '../components/NotificationSettings';
 import { fetchReservations, updateReservation, Reservation, logoutAdmin, getSession } from '../utils/api';
 
 const Dashboard: React.FC = () => {
@@ -128,6 +129,8 @@ const Dashboard: React.FC = () => {
           Logout
         </button>
       </div>
+      
+      <NotificationSettings />
       
       <ReservationTable
         reservations={reservations}

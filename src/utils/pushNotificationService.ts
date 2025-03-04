@@ -83,3 +83,11 @@ export const initializeNotifications = async (): Promise<void> => {
     await requestNotificationPermission();
   }
 };
+
+// Get current notification permission status
+export const getNotificationPermissionStatus = (): string => {
+  if (!isNotificationSupported()) {
+    return 'not-supported';
+  }
+  return Notification.permission;
+};
