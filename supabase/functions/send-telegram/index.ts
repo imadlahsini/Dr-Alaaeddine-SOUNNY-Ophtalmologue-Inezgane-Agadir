@@ -32,8 +32,9 @@ serve(async (req) => {
     });
 
     // Get the Telegram bot token and chat ID from environment variables
+    // The bot token "7568197664:AAH42WusrtFjIZv3DjUfAAzz4jBLdqseD2k" should be stored as a Supabase secret
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-    const chatId = Deno.env.get("TELEGRAM_CHAT_ID") || "6024686458"; // Use environment variable with fallback
+    const chatId = Deno.env.get("TELEGRAM_CHAT_ID") || "6024686458"; // Use provided chat ID as fallback
 
     console.log("Request received for send-telegram function");
     console.log("Bot token configured:", !!botToken);
