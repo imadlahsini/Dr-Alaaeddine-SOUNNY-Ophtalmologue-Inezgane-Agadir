@@ -24,6 +24,9 @@ const ThankYou = () => {
     // Get reservation details from location state if available
     if (location.state && location.state.reservation) {
       setState({ reservation: location.state.reservation });
+      console.log("Reservation data received:", location.state.reservation);
+    } else {
+      console.warn("No reservation data in location state");
     }
   }, [location]);
 
@@ -115,7 +118,7 @@ const ThankYou = () => {
           </div>
         </motion.div>
         
-        {/* New Reservation info card */}
+        {/* Reservation info card */}
         {state.reservation && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}

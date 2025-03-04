@@ -212,8 +212,28 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
         
         toast.success(t.success);
         
+        // Explicitly log the data being passed to the thank-you page
+        console.log('Navigation data:', {
+          reservation: {
+            name: formData.name,
+            phone: formData.phone,
+            date: formData.date,
+            timeSlot: formData.timeSlot
+          }
+        });
+        
+        // Navigate to the thank-you page with the reservation data
         setTimeout(() => {
-          navigate('/thank-you');
+          navigate('/thank-you', { 
+            state: { 
+              reservation: {
+                name: formData.name,
+                phone: formData.phone,
+                date: formData.date,
+                timeSlot: formData.timeSlot
+              }
+            }
+          });
         }, 1000);
       } else {
         toast.error(result.message || 'Failed to create reservation');
