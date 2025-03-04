@@ -1,3 +1,4 @@
+
 /**
  * API configuration and utility functions using Supabase
  */
@@ -21,7 +22,7 @@ export interface Reservation {
 }
 
 export interface LoginCredentials {
-  username: string;
+  email: string;
   password: string;
 }
 
@@ -71,10 +72,9 @@ export async function createReservation(reservationData: Omit<Reservation, 'id' 
 
 export async function fetchReservations(): Promise<{ success: boolean; data?: Reservation[]; message?: string }> {
   try {
-    // Get auth token from localStorage (we'll keep this for now but might change later)
-    const token = localStorage.getItem('authToken');
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
-    if (!token) {
+    if (sessionError || !sessionData.session) {
       return { success: false, message: 'Not authenticated' };
     }
     
@@ -116,10 +116,9 @@ export async function updateReservation(
   updates: Partial<Reservation>
 ): Promise<{ success: boolean; message: string }> {
   try {
-    // Get auth token from localStorage (we'll keep this for now but might change later)
-    const token = localStorage.getItem('authToken');
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
-    if (!token) {
+    if (sessionError || !sessionData.session) {
       return { success: false, message: 'Not authenticated' };
     }
     
@@ -153,19 +152,48 @@ export async function updateReservation(
   }
 }
 
-export async function loginAdmin(credentials: LoginCredentials): Promise<{ success: boolean; token?: string; message?: string }> {
-  // For now, we'll keep this function as-is
-  // Later we can implement proper authentication using Supabase Auth
+export async function loginAdmin(credentials: LoginCredentials): Promise<{ success: boolean; message?: string }> {
   try {
-    // Hardcoded login for demo purposes (replace with Supabase Auth later)
-    if (credentials.username === 'admin' && credentials.password === 'password') {
-      const fakeToken = 'fake-jwt-token-' + Date.now();
-      localStorage.setItem('authToken', fakeToken);
-      return { success: true, token: fakeToken };
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: credentials.email,
+      password: credentials.password
+    });
+    
+    if (error) {
+      console.error('Supabase auth error:', error);
+      return { 
+        success: false, 
+        message: error.message || 'Invalid credentials' 
+      };
     }
-    return { success: false, message: 'Invalid credentials' };
+    
+    if (!data.session) {
+      return { success: false, message: 'No session created' };
+    }
+    
+    return { success: true };
   } catch (error) {
     console.error('Error during login:', error);
     return { success: false, message: 'Network error. Please try again.' };
   }
+}
+
+export async function logoutAdmin(): Promise<{ success: boolean; message?: string }> {
+  try {
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      console.error('Error during logout:', error);
+      return { success: false, message: error.message };
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error during logout:', error);
+    return { success: false, message: 'Network error. Please try again.' };
+  }
+}
+
+export async function getSession() {
+  return supabase.auth.getSession();
 }

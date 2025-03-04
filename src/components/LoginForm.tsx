@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, User, LogIn, Loader2 } from 'lucide-react';
+import { Lock, Mail, LogIn, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { loginAdmin } from '../utils/api';
@@ -10,7 +10,7 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [credentials, setCredentials] = useState({
-    username: '',
+    email: '',
     password: ''
   });
 
@@ -26,14 +26,11 @@ const LoginForm = () => {
     try {
       const result = await loginAdmin(credentials);
       
-      if (result.success && result.token) {
-        // Store the auth token
-        localStorage.setItem('authToken', result.token);
-        localStorage.setItem('isAuthenticated', 'true');
+      if (result.success) {
         toast.success('Login successful!');
         navigate('/dashboard');
       } else {
-        toast.error(result.message || 'Invalid username or password');
+        toast.error(result.message || 'Login failed');
       }
     } catch (error) {
       toast.error('An error occurred during login');
@@ -57,16 +54,16 @@ const LoginForm = () => {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="form-group">
-          <label htmlFor="username"><User className="w-4 h-4 mr-1" /> Username</label>
+          <label htmlFor="email"><Mail className="w-4 h-4 mr-1" /> Email</label>
           <input
-            type="text"
-            id="username"
-            name="username"
-            value={credentials.username}
+            type="email"
+            id="email"
+            name="email"
+            value={credentials.email}
             onChange={handleChange}
             required
             className="w-full p-4 text-base bg-transparent border-none rounded-[15px] outline-none"
-            placeholder="Enter your username"
+            placeholder="Enter your email"
           />
         </div>
 

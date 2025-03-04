@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import ReservationTable from '../components/ReservationTable';
-import { fetchReservations, updateReservation, Reservation } from '../utils/api';
+import { fetchReservations, updateReservation, Reservation, logoutAdmin, getSession } from '../utils/api';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -12,13 +13,25 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      navigate('/admin');
-      return;
-    }
-
-    fetchData();
+    // Check if user is authenticated
+    const checkAuth = async () => {
+      try {
+        const { data, error } = await getSession();
+        
+        if (error || !data.session) {
+          navigate('/admin');
+          return;
+        }
+        
+        // If authenticated, fetch reservations
+        fetchData();
+      } catch (err) {
+        console.error('Auth check error:', err);
+        navigate('/admin');
+      }
+    };
+    
+    checkAuth();
   }, [navigate]);
 
   const fetchData = async () => {
@@ -76,13 +89,28 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    navigate('/admin');
+  const handleLogout = async () => {
+    try {
+      const result = await logoutAdmin();
+      if (result.success) {
+        toast.success('Logged out successfully');
+        navigate('/admin');
+      } else {
+        toast.error(result.message || 'Logout failed');
+      }
+    } catch (err) {
+      console.error('Error during logout:', err);
+      toast.error('Network error. Please try again.');
+    }
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-screen">Loading reservations...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading reservations...</span>
+      </div>
+    );
   }
 
   if (error) {
