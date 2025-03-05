@@ -84,7 +84,7 @@
   }
 
   .form-group label {
-    @apply absolute -top-3 left-5 px-2 bg-background text-primary font-semibold text-xs sm:text-sm flex items-center;
+    @apply absolute -top-3 left-5 px-2 bg-white text-primary font-semibold text-xs sm:text-sm flex items-center;
   }
 
   .time-button {
