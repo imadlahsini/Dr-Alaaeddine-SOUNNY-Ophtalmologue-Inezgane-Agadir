@@ -23,7 +23,12 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
     
     try {
       setIsDeleting(true);
-      await onDelete(reservation.id);
+      console.log(`Calling delete handler for reservation ID: ${reservation.id}`);
+      const success = await onDelete(reservation.id);
+      
+      if (!success) {
+        throw new Error('Delete operation failed');
+      }
     } catch (error) {
       console.error('Error deleting reservation:', error);
       toast.error('Failed to delete reservation');
