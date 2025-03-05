@@ -1,8 +1,6 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
 
 export type ReservationStatus = 'Pending' | 'Confirmed' | 'Canceled' | 'Not Responding';
 
@@ -58,7 +56,6 @@ export const useDashboard = () => {
       
       console.log('Fetching reservations from database...');
       
-      // Ensure we're getting fresh data with no caching
       const { data, error } = await supabase
         .from('reservations')
         .select('*')
@@ -207,7 +204,6 @@ export const useDashboard = () => {
       
       console.log(`Handling status update for reservation ${id} to ${status} in useDashboard`);
       
-      // First, update the local state for immediate UI response
       setState(prev => {
         const updatedReservations = prev.reservations.map(reservation => 
           reservation.id === id ? { ...reservation, status } : reservation
@@ -228,13 +224,8 @@ export const useDashboard = () => {
         };
       });
       
-      // Database update is handled in the ReservationCardNew component
-      // We don't need to update the database here again
-      
-      // Wait a bit longer to ensure DB operation in the card component completes
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Verify the update in the database - this is a failsafe
       const { data, error: checkError } = await supabase
         .from('reservations')
         .select('status')
@@ -243,11 +234,9 @@ export const useDashboard = () => {
       
       if (checkError) {
         console.warn('Error verifying status update:', checkError);
-        // Force a refresh to ensure we have the correct data
         fetchReservations();
       } else if (data.status !== status) {
         console.warn(`Status verification failed: Database has ${data.status}, but UI expected ${status}`);
-        // Re-fetch if the database doesn't match what we expected
         fetchReservations();
       } else {
         console.log(`Verified: Database status for ${id} is ${data.status} as expected`);
@@ -261,10 +250,8 @@ export const useDashboard = () => {
   };
   
   useEffect(() => {
-    // Initial fetch of reservations
     fetchReservations();
     
-    // Set up realtime subscription 
     const setupRealtimeSubscription = () => {
       if (realtimeChannelRef.current) {
         supabase.removeChannel(realtimeChannelRef.current);
@@ -318,7 +305,6 @@ export const useDashboard = () => {
         }, payload => {
           console.log('Reservation updated:', payload);
           
-          // Skip processing if we initiated the update to avoid double processing
           if (isUpdating[payload.new.id]) {
             console.log(`Ignoring external update for ${payload.new.id} as it was triggered locally`);
             return;
@@ -394,7 +380,6 @@ export const useDashboard = () => {
     
     setupRealtimeSubscription();
     
-    // Cleanup function
     return () => {
       if (realtimeChannelRef.current) {
         console.log('Cleaning up realtime subscription');

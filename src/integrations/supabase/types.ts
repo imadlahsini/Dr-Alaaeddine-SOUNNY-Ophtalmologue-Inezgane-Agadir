@@ -14,6 +14,7 @@ export type Database = {
           created_at: string | null
           date: string
           id: string
+          manual_update: boolean | null
           name: string
           phone: string
           status: string
@@ -23,6 +24,7 @@ export type Database = {
           created_at?: string | null
           date: string
           id?: string
+          manual_update?: boolean | null
           name: string
           phone: string
           status?: string
@@ -32,6 +34,7 @@ export type Database = {
           created_at?: string | null
           date?: string
           id?: string
+          manual_update?: boolean | null
           name?: string
           phone?: string
           status?: string
