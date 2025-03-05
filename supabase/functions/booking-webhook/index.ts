@@ -26,7 +26,9 @@ serve(async (req) => {
 
     console.log(`Webhook received ${type} event for record:`, record);
 
-    // IMPORTANT: Completely ignore any status updates to prevent webhook interference
+    // Only ignore automatic status updates coming from external systems
+    // We'll identify manual updates from the dashboard by checking for a special header or property
+    // that would be set when updates come from the dashboard UI
     if (type === 'UPDATE' && body.old) {
       const statusChanged = body.old.status !== record.status;
       const isStatusOnlyChange = 
@@ -35,13 +37,28 @@ serve(async (req) => {
         body.old.date === record.date && 
         body.old.time_slot === record.time_slot &&
         body.old.status !== record.status;
+      
+      // Check if this is an automatic update (not from dashboard)
+      // We can use the metadata field to check for a flag indicating manual update
+      const isAutomaticUpdate = statusChanged && !record.manual_update;
         
-      if (statusChanged || isStatusOnlyChange) {
-        console.log(`Status change detected (${body.old.status} -> ${record.status}). Webhook IGNORING this update.`);
-        return new Response(JSON.stringify({ success: true, message: 'Status update ignored by webhook' }), {
+      if (isAutomaticUpdate || (isStatusOnlyChange && !record.manual_update)) {
+        console.log(`Automatic status change detected (${body.old.status} -> ${record.status}). Webhook IGNORING this update.`);
+        return new Response(JSON.stringify({ success: true, message: 'Automatic status update ignored by webhook' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
         });
+      }
+      
+      // If it's a manual update, clear the flag after processing
+      if (record.manual_update) {
+        // Remove the flag after processing
+        await supabaseAdmin
+          .from('reservations')
+          .update({ manual_update: null })
+          .eq('id', record.id);
+        
+        console.log(`Manual status update detected and processed for ID: ${record.id}`);
       }
     }
       

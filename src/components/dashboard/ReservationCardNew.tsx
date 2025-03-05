@@ -59,9 +59,13 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
       toast.info(`Updating to ${newStatus}...`);
       
       // Force wait to ensure database operation completes before any UI changes
+      // Add manual_update flag to indicate this is a deliberate UI-triggered update
       const { error } = await supabase
         .from('reservations')
-        .update({ status: newStatus })
+        .update({ 
+          status: newStatus,
+          manual_update: true // Add this flag to indicate manual update
+        })
         .eq('id', reservation.id);
       
       if (error) {

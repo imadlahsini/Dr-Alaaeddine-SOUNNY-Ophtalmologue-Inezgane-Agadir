@@ -231,8 +231,8 @@ export const useDashboard = () => {
       // Database update is handled in the ReservationCardNew component
       // We don't need to update the database here again
       
-      // Wait a brief moment to ensure DB operation in the card component completes
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait a bit longer to ensure DB operation in the card component completes
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Verify the update in the database - this is a failsafe
       const { data, error: checkError } = await supabase
@@ -243,6 +243,8 @@ export const useDashboard = () => {
       
       if (checkError) {
         console.warn('Error verifying status update:', checkError);
+        // Force a refresh to ensure we have the correct data
+        fetchReservations();
       } else if (data.status !== status) {
         console.warn(`Status verification failed: Database has ${data.status}, but UI expected ${status}`);
         // Re-fetch if the database doesn't match what we expected
