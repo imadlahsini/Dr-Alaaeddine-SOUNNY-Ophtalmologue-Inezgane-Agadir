@@ -2,31 +2,16 @@
 import React from 'react';
 import { Phone, Calendar, Clock } from 'lucide-react';
 import { Reservation, ReservationStatus } from '../../hooks/useDashboard';
-import { toast } from 'sonner';
 
 interface ReservationCardProps {
   reservation: Reservation;
-  onStatusChange: (id: string, status: ReservationStatus) => void;
   compact?: boolean;
 }
 
 const ReservationCardNew: React.FC<ReservationCardProps> = ({
   reservation,
-  onStatusChange,
   compact = false
 }) => {
-  const handleStatusChange = (newStatus: ReservationStatus) => {
-    if (reservation.status === newStatus) return;
-    
-    try {
-      toast.info(`Updating to ${newStatus}...`);
-      onStatusChange(reservation.id, newStatus);
-    } catch (error) {
-      console.error('Error in handleStatusChange:', error);
-      toast.error(`Failed to update status`);
-    }
-  };
-
   const getStatusColor = (status: ReservationStatus) => {
     switch(status) {
       case 'Confirmed': return 'bg-green-100 text-green-800';
@@ -58,35 +43,6 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
           <Clock className="w-3 h-3 mr-1" />
           <span>{reservation.timeSlot}</span>
         </div>
-      </div>
-      
-      <div className="mt-3 flex gap-2">
-        {reservation.status !== 'Confirmed' && (
-          <button
-            onClick={() => handleStatusChange('Confirmed')}
-            className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs"
-          >
-            Confirm
-          </button>
-        )}
-        
-        {reservation.status !== 'Canceled' && (
-          <button
-            onClick={() => handleStatusChange('Canceled')}
-            className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs"
-          >
-            Cancel
-          </button>
-        )}
-        
-        {reservation.status !== 'Pending' && (
-          <button
-            onClick={() => handleStatusChange('Pending')}
-            className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs"
-          >
-            Pending
-          </button>
-        )}
       </div>
     </div>
   );

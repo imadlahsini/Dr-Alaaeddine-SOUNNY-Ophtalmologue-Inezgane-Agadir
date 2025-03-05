@@ -8,7 +8,6 @@ import {
   DashboardState 
 } from '../types/reservation';
 import { calculateStats, applyFilters } from '../utils/reservationUtils';
-import { useReservationStatusUpdate } from './useReservationStatusUpdate';
 import { useReservationSubscription } from './useReservationSubscription';
 
 /**
@@ -26,12 +25,6 @@ export const useDashboard = () => {
     error: null,
     lastRefreshed: null
   });
-  
-  // Get status update functionality
-  const { 
-    updateReservationStatus: updateStatus, 
-    isUpdating
-  } = useReservationStatusUpdate();
   
   /**
    * Fetch reservations from Supabase and apply filters
@@ -150,8 +143,7 @@ export const useDashboard = () => {
           stats: calculateStats(updatedReservations)
         };
       });
-    },
-    isUpdating
+    }
   });
   
   // Fetch reservations on initial load
@@ -219,44 +211,11 @@ export const useDashboard = () => {
     });
   };
   
-  /**
-   * Update reservation status and handle UI updates
-   */
-  const updateReservationStatus = async (id: string, status: ReservationStatus) => {
-    // Update local UI for immediate feedback
-    setState(prev => {
-      const updatedReservations = prev.reservations.map(reservation => 
-        reservation.id === id ? { ...reservation, status } : reservation
-      );
-      
-      const updatedFiltered = applyFilters(
-        updatedReservations,
-        prev.searchQuery,
-        prev.statusFilter,
-        prev.dateFilter
-      );
-      
-      return {
-        ...prev,
-        reservations: updatedReservations,
-        filteredReservations: updatedFiltered,
-        stats: calculateStats(updatedReservations)
-      };
-    });
-    
-    // Send update to database
-    await updateStatus(id, status, () => {
-      // This is called on successful update
-      // We've already updated the UI, so nothing more to do here
-    });
-  };
-  
   return {
     ...state,
     setSearchQuery,
     setStatusFilter,
     setDateFilter,
-    updateReservationStatus,
     refreshData: fetchReservations
   };
 };

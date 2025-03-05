@@ -8,17 +8,15 @@ interface UseReservationSubscriptionProps {
   onInsert: (reservation: Reservation) => void;
   onUpdate: (reservation: Reservation) => void;
   onDelete: (id: string) => void;
-  isUpdating: Record<string, boolean>;
 }
 
 /**
- * Hook for setting up realtime subscriptions to reservation changes - simplified version
+ * Hook for setting up realtime subscriptions to reservation changes
  */
 export const useReservationSubscription = ({
   onInsert,
   onUpdate,
-  onDelete,
-  isUpdating
+  onDelete
 }: UseReservationSubscriptionProps) => {
   const realtimeChannelRef = useRef<any>(null);
   
@@ -62,12 +60,6 @@ export const useReservationSubscription = ({
         }, payload => {
           console.log('Reservation updated:', payload);
           
-          // Skip if this update is coming from this device (we already handled it)
-          if (isUpdating[payload.new.id]) {
-            console.log(`Ignoring external update for ${payload.new.id} as it was triggered locally`);
-            return;
-          }
-          
           // This update is from another device, so we should apply it
           const updatedReservation: Reservation = {
             id: payload.new.id,
@@ -109,7 +101,7 @@ export const useReservationSubscription = ({
         supabase.removeChannel(realtimeChannelRef.current);
       }
     };
-  }, [onInsert, onUpdate, onDelete, isUpdating]);
+  }, [onInsert, onUpdate, onDelete]);
   
   return {
     realtimeChannel: realtimeChannelRef.current

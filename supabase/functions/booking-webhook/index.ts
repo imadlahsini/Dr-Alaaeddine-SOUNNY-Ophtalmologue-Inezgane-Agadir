@@ -25,29 +25,6 @@ serve(async (req) => {
     const { record, type } = body;
 
     console.log(`Webhook received ${type} event for record:`, record);
-
-    // Handle manual updates from dashboard vs automated updates
-    if (type === 'UPDATE' && body.old) {
-      const statusChanged = body.old.status !== record.status;
-      
-      // Check if this is a manual update from the dashboard UI
-      if (record.manual_update === true) {
-        console.log(`Manual update detected for ID ${record.id} (${body.old.status} -> ${record.status}). Processing...`);
-        
-        // Clear the manual_update flag
-        const { error } = await supabaseAdmin
-          .from('reservations')
-          .update({ manual_update: null })
-          .eq('id', record.id);
-          
-        if (error) {
-          console.error(`Error clearing manual_update flag: ${error.message}`);
-          throw error;
-        }
-        
-        console.log(`Cleared manual_update flag for ID: ${record.id}, preserving status: ${record.status}`);
-      }
-    }
       
     // Format the data to send to the webhook
     const bookingData = {

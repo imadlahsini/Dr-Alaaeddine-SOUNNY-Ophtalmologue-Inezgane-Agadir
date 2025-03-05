@@ -30,14 +30,8 @@ const NewDashboard: React.FC = () => {
     setSearchQuery,
     setStatusFilter,
     setDateFilter,
-    updateReservationStatus,
     refreshData
   } = useDashboard();
-
-  // Filter reservations by status
-  const pendingReservations = filteredReservations.filter(r => r.status === 'Pending' || r.status === 'Not Responding');
-  const confirmedReservations = filteredReservations.filter(r => r.status === 'Confirmed');
-  const canceledReservations = filteredReservations.filter(r => r.status === 'Canceled');
 
   // Handle logout
   const handleLogout = async () => {
@@ -144,7 +138,6 @@ const NewDashboard: React.FC = () => {
                       <ReservationCardNew
                         key={reservation.id}
                         reservation={reservation}
-                        onStatusChange={updateReservationStatus}
                         compact={true}
                       />
                     ))}
