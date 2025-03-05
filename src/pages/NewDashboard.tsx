@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { logoutAdmin } from '../utils/api';
@@ -13,6 +13,7 @@ import { useDashboard } from '../hooks/useDashboard';
 import DashboardFiltersNew from '../components/dashboard/DashboardFiltersNew';
 import ReservationCardNew from '../components/dashboard/ReservationCardNew';
 import { DashboardLoading, DashboardError, DashboardEmpty, NoResultsFound } from '../components/dashboard/DashboardStates';
+import { Reservation } from '../types/reservation';
 
 const NewDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +29,12 @@ const NewDashboard: React.FC = () => {
     setSearchQuery,
     setStatusFilter,
   } = useDashboard();
+
+  // Handle status update
+  const handleStatusUpdate = (updatedReservation: Reservation) => {
+    // The useDashboard hook handles realtime updates, so we don't need to manually update the state
+    toast.success(`Updated ${updatedReservation.name}'s reservation to ${updatedReservation.status}`);
+  };
 
   // Handle logout
   const handleLogout = async () => {
@@ -108,6 +115,7 @@ const NewDashboard: React.FC = () => {
                         key={reservation.id}
                         reservation={reservation}
                         compact={true}
+                        onStatusUpdate={handleStatusUpdate}
                       />
                     ))}
                   </div>

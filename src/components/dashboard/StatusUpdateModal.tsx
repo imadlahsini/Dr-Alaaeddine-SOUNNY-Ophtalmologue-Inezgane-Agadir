@@ -35,16 +35,14 @@ const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
       console.log(`Updating reservation ${reservation.id} status from ${reservation.status} to ${status}`);
       
       // Update in Supabase - this will trigger the realtime subscription
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('reservations')
         .update({ 
           status: status,
           // Set manual_update to true to indicate this was done by an admin
           manual_update: true 
         })
-        .eq('id', reservation.id)
-        .select()
-        .single();
+        .eq('id', reservation.id);
       
       if (error) {
         throw error;

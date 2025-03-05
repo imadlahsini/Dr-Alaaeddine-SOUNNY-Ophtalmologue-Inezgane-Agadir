@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Phone, Calendar, Clock } from 'lucide-react';
 import { Reservation, ReservationStatus } from '../../types/reservation';
 import StatusUpdateModal from './StatusUpdateModal';
@@ -21,6 +21,12 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
       case 'Canceled': return 'bg-red-100 text-red-800';
       case 'Not Responding': return 'bg-gray-100 text-gray-800';
       default: return 'bg-yellow-100 text-yellow-800';
+    }
+  };
+
+  const handleStatusUpdate = (updatedReservation: Reservation) => {
+    if (onStatusUpdate) {
+      onStatusUpdate(updatedReservation);
     }
   };
 
@@ -50,7 +56,7 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
 
       <StatusUpdateModal 
         reservation={reservation}
-        onStatusUpdate={onStatusUpdate}
+        onStatusUpdate={handleStatusUpdate}
       />
     </div>
   );
