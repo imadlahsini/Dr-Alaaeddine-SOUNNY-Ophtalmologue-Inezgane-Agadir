@@ -1,4 +1,3 @@
-
 #root {
   max-width: 100%;
   margin: 0 auto;
@@ -123,5 +122,48 @@
   .max-h-\[70vh\] {
     max-height: 70vh; /* Fallback */
     max-height: calc(70 * var(--vh, 1vh));
+  }
+}
+
+/* Mobile dashboard fixes */
+@media (max-width: 640px) {
+  .min-h-screen {
+    min-height: -webkit-fill-available;
+  }
+  
+  input, select, button {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS */
+    max-height: 44px;
+  }
+  
+  /* Ensure all interactive elements are easily tappable */
+  button, 
+  [role="button"],
+  input[type="submit"], 
+  input[type="button"],
+  select,
+  input {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px 12px;
+  }
+  
+  /* Prevent horizontal scrolling issues */
+  body {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+  }
+  
+  /* Make sure containers don't overflow */
+  .max-w-full {
+    width: 100%;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  
+  /* Ensure scrollable areas work properly */
+  .overflow-auto {
+    -webkit-overflow-scrolling: touch;
   }
 }

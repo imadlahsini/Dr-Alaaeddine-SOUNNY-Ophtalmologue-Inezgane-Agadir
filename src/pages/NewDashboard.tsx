@@ -4,19 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { logoutAdmin } from '../utils/api';
 import { clearAuthState } from '../utils/authUtils';
-import { CalendarDays, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 
 // Hooks
 import { useAuthentication } from '../hooks/useAuthentication';
 import { useDashboard } from '../hooks/useDashboard';
 
 // Components
-import DashboardHeaderNew from '../components/dashboard/DashboardHeaderNew';
-import StatsCardNew from '../components/dashboard/StatsCardNew';
-import ReservationCardNew from '../components/dashboard/ReservationCardNew';
 import DashboardFiltersNew from '../components/dashboard/DashboardFiltersNew';
+import ReservationCardNew from '../components/dashboard/ReservationCardNew';
 import { DashboardLoading, DashboardError, DashboardEmpty, NoResultsFound } from '../components/dashboard/DashboardStates';
-import NotificationSettings from '../components/NotificationSettings';
 
 const NewDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -26,13 +22,11 @@ const NewDashboard: React.FC = () => {
   const {
     reservations,
     filteredReservations,
-    stats,
     searchQuery,
     statusFilter,
     dateFilter,
     isLoading,
     error,
-    lastRefreshed,
     setSearchQuery,
     setStatusFilter,
     setDateFilter,
@@ -48,16 +42,9 @@ const NewDashboard: React.FC = () => {
   // Handle logout
   const handleLogout = async () => {
     try {
-      const result = await logoutAdmin();
+      await logoutAdmin();
       clearAuthState();
-      
-      if (result.success) {
-        toast.success('Logged out successfully');
-      } else {
-        console.warn("Logout error:", result.message);
-        toast.error(result.message || 'Logout failed, but local session cleared');
-      }
-      
+      toast.success('Logged out successfully');
       navigate('/admin');
     } catch (err) {
       console.error('Error during logout:', err);
@@ -100,44 +87,27 @@ const NewDashboard: React.FC = () => {
     return null;
   }
 
-  // Column render helper function
-  const renderColumn = (title, icon, color, reservations, emptyMessage) => (
-    <div className="flex flex-col h-full">
-      <div className={`sticky top-0 z-10 flex items-center gap-2 mb-3 p-3 bg-white rounded-lg shadow-sm text-${color}-600 font-semibold`}>
-        {icon}
-        <h2>{title} ({reservations.length})</h2>
-      </div>
-      <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-        {reservations.length === 0 ? (
-          <div className="text-center py-6 text-gray-500 italic">{emptyMessage}</div>
-        ) : (
-          reservations.map((reservation) => (
-            <ReservationCardNew
-              key={reservation.id}
-              reservation={reservation}
-              onStatusChange={updateReservationStatus}
-              compact={true}
-            />
-          ))
-        )}
-      </div>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 sm:py-8 lg:px-8">
-        {/* Header */}
-        <DashboardHeaderNew
-          onLogout={handleLogout}
-          onRefresh={handleRefresh}
-          isRefreshing={isRefreshing}
-          lastRefreshed={lastRefreshed}
-        />
-        
-        {/* Notification Settings */}
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm mb-4 sm:mb-6">
-          <NotificationSettings />
+      <div className="max-w-full mx-auto px-2 py-2">
+        {/* Simple Header */}
+        <div className="flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm">
+          <h1 className="text-xl font-bold">Reservation Dashboard</h1>
+          <div className="flex gap-2">
+            <button 
+              onClick={handleRefresh}
+              className="px-3 py-1 bg-blue-500 text-white rounded-lg"
+              disabled={isRefreshing}
+            >
+              Refresh
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="px-3 py-1 bg-gray-500 text-white rounded-lg"
+            >
+              Logout
+            </button>
+          </div>
         </div>
         
         {/* Main Content */}
@@ -147,36 +117,8 @@ const NewDashboard: React.FC = () => {
           <DashboardError error={error} onRetry={refreshData} />
         ) : (
           <>
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 mb-4 sm:mb-6">
-              <StatsCardNew 
-                title="Total Reservations" 
-                value={stats.total} 
-                icon={CalendarDays}
-                iconColor="text-purple-600"
-              />
-              <StatsCardNew 
-                title="Confirmed" 
-                value={stats.confirmed} 
-                icon={CheckCircle}
-                iconColor="text-green-600"
-              />
-              <StatsCardNew 
-                title="Pending" 
-                value={stats.pending} 
-                icon={AlertTriangle}
-                iconColor="text-yellow-600"
-              />
-              <StatsCardNew 
-                title="Canceled" 
-                value={stats.canceled} 
-                icon={XCircle}
-                iconColor="text-red-600"
-              />
-            </div>
-            
             {/* Filters */}
-            <div className="mb-4 sm:mb-6">
+            <div className="mb-4">
               <DashboardFiltersNew
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
@@ -187,55 +129,29 @@ const NewDashboard: React.FC = () => {
               />
             </div>
             
-            {/* Reservations Columns */}
+            {/* Reservations Lists */}
             {reservations.length === 0 ? (
               <DashboardEmpty onRefresh={handleRefresh} />
             ) : filteredReservations.length === 0 ? (
               <NoResultsFound onClearFilters={clearFilters} />
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-3">
-                {/* Pending Column */}
-                <div className="bg-white rounded-xl shadow-sm p-3 min-h-[400px] max-h-[500px] md:min-h-[600px] md:max-h-[70vh] flex flex-col overflow-hidden">
-                  {renderColumn(
-                    "Pending Reservations",
-                    <AlertTriangle className="w-5 h-5" />,
-                    "yellow",
-                    pendingReservations,
-                    "No pending reservations"
-                  )}
-                </div>
-                
-                {/* Confirmed Column */}
-                <div className="bg-white rounded-xl shadow-sm p-3 min-h-[400px] max-h-[500px] md:min-h-[600px] md:max-h-[70vh] flex flex-col overflow-hidden">
-                  {renderColumn(
-                    "Confirmed Reservations",
-                    <CheckCircle className="w-5 h-5" />,
-                    "green",
-                    confirmedReservations,
-                    "No confirmed reservations"
-                  )}
-                </div>
-                
-                {/* Canceled Column */}
-                <div className="bg-white rounded-xl shadow-sm p-3 min-h-[400px] max-h-[500px] md:min-h-[600px] md:max-h-[70vh] flex flex-col overflow-hidden">
-                  {renderColumn(
-                    "Canceled Reservations",
-                    <XCircle className="w-5 h-5" />,
-                    "red",
-                    canceledReservations,
-                    "No canceled reservations"
-                  )}
+              <div className="space-y-4">
+                {/* Simplified view - just a flat list of reservations */}
+                <div className="bg-white rounded-lg shadow-sm p-3 overflow-auto">
+                  <h2 className="font-semibold mb-2">All Reservations ({filteredReservations.length})</h2>
+                  <div className="space-y-2">
+                    {filteredReservations.map((reservation) => (
+                      <ReservationCardNew
+                        key={reservation.id}
+                        reservation={reservation}
+                        onStatusChange={updateReservationStatus}
+                        compact={true}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
-            
-            {/* Realtime indicator */}
-            <div className="fixed bottom-4 right-4 z-10">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium shadow-md bg-green-100 text-green-800">
-                <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
-                <span>Real-time updates active</span>
-              </div>
-            </div>
           </>
         )}
       </div>

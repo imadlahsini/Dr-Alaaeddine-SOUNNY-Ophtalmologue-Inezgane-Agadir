@@ -30,18 +30,13 @@ function App() {
       const existingViewports = document.querySelectorAll('meta[name="viewport"]');
       existingViewports.forEach(tag => tag.remove());
       
-      // Add a new viewport meta tag with proper settings
+      // Add a new viewport meta tag with proper settings for mobile
       const viewportMeta = document.createElement('meta');
       viewportMeta.name = 'viewport';
-      viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0';
+      viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
       document.head.appendChild(viewportMeta);
       
-      // Force layout recalculation
-      document.documentElement.style.height = '100%';
-      document.body.style.height = '100%';
-      document.body.style.minHeight = '100vh';
-      
-      console.log('Mobile viewport meta tag updated for better responsiveness');
+      console.log('Mobile viewport meta tag updated for mobile dashboard view');
     };
     
     // Run viewport update once
@@ -51,6 +46,7 @@ function App() {
     const setVhProperty = () => {
       const vh = window.innerHeight * 0.01;
       document.documentElement.style.setProperty('--vh', `${vh}px`);
+      console.log('Mobile viewport height set:', vh);
     };
     
     // Set it initially
@@ -59,46 +55,6 @@ function App() {
     // Update on resize and orientation change
     window.addEventListener('resize', setVhProperty);
     window.addEventListener('orientationchange', setVhProperty);
-    
-    // Apply some base styles to ensure proper mobile rendering
-    const applyMobileStyles = () => {
-      // Check if styles already applied to avoid duplicates
-      if (document.getElementById('mobile-base-styles')) {
-        return;
-      }
-      
-      const style = document.createElement('style');
-      style.id = 'mobile-base-styles';
-      style.textContent = `
-        @media (max-width: 768px) {
-          body {
-            overflow-x: hidden;
-            width: 100%;
-            min-height: 100vh;
-            position: relative;
-          }
-          
-          #root {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-          }
-        }
-      `;
-      document.head.appendChild(style);
-    };
-    
-    applyMobileStyles();
-    
-    // Only clear session storage on first app load in a new session
-    const isFirstLoad = !sessionStorage.getItem('app_initialized');
-    if (isFirstLoad) {
-      console.log('First load: clearing session storage to prevent stale flags');
-      // Don't completely clear session storage as it could remove authentication data
-      // Just remove potential stale flags
-      sessionStorage.removeItem('realtime_toast_shown');
-      sessionStorage.setItem('app_initialized', 'true');
-    }
     
     return () => {
       window.removeEventListener('resize', setVhProperty);
