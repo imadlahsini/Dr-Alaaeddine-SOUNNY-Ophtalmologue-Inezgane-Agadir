@@ -96,7 +96,7 @@ export const useAuthentication = () => {
         setAuthState();
         setIsAuth(true);
         setIsChecking(false);
-      } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+      } else if (event === 'SIGNED_OUT') {
         clearAuthState();
         setIsAuth(false);
         setIsChecking(false);
