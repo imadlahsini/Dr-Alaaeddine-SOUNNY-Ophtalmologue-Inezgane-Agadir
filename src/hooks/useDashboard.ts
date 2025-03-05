@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
-import { Reservation } from '../types/reservation';
+import { Reservation, ReservationStatus } from '../types/reservation';
 import { useReservationSubscription } from './useReservationSubscription';
 
 /**
@@ -43,7 +43,7 @@ export const useDashboard = () => {
         phone: item.phone,
         date: item.date,
         timeSlot: item.time_slot,
-        status: item.status,
+        status: item.status as ReservationStatus, // Cast the status to ReservationStatus type
         createdAt: item.created_at
       }));
       

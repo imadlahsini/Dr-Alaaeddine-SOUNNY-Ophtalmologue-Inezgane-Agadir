@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
-import { Reservation } from '../types/reservation';
+import { Reservation, ReservationStatus } from '../types/reservation';
 
 interface UseReservationSubscriptionProps {
   onInsert: (reservation: Reservation) => void;
@@ -42,7 +42,7 @@ export const useReservationSubscription = ({
           phone: payload.new.phone,
           date: payload.new.date,
           timeSlot: payload.new.time_slot,
-          status: payload.new.status,
+          status: payload.new.status as ReservationStatus,
           createdAt: payload.new.created_at
         };
         
@@ -66,7 +66,7 @@ export const useReservationSubscription = ({
           phone: payload.new.phone,
           date: payload.new.date,
           timeSlot: payload.new.time_slot,
-          status: payload.new.status,
+          status: payload.new.status as ReservationStatus,
           createdAt: payload.new.created_at
         };
         
