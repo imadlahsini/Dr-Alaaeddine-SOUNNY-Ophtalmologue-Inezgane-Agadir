@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import ReservationForm from '../components/ReservationForm';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import logoImage from '../assets/images/logo.webp';
 
 const Index = () => {
   const [language, setLanguage] = useState<'fr' | 'ar' | 'tm'>('fr');
@@ -25,7 +26,7 @@ const Index = () => {
 
       {/* Logo */}
       <motion.img 
-        src="https://sounny.ma/logo.webp" 
+        src={logoImage} 
         alt="Logo" 
         className="w-[120px] sm:w-[156px] mb-4 sm:mb-6"
         initial={{ opacity: 0, y: -20 }}

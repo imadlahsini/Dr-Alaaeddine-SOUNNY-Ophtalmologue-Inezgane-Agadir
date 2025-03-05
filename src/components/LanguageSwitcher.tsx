@@ -3,6 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
+// Import language flag images
+import frFlag from '../assets/images/fr.webp';
+import arFlag from '../assets/images/ar.webp';
+import tmFlag from '../assets/images/tm.webp';
+
 interface LanguageSwitcherProps {
   currentLanguage: 'fr' | 'ar' | 'tm';
   onLanguageChange: (lang: 'fr' | 'ar' | 'tm') => void;
@@ -37,6 +42,13 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
     tm: 'ⵜⵉⵍⵍⵉ ⵡⵓⴰⵍ ⵏ ⵜⴰⵎⴰⵣⵉⵖⵜ'
   };
 
+  // Create a map for flag images
+  const flagImages = {
+    fr: frFlag,
+    ar: arFlag,
+    tm: tmFlag
+  };
+
   const handleClose = () => {
     setClosing(true);
     setTimeout(() => {
@@ -54,7 +66,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
         dir={isRtl ? 'rtl' : 'ltr'}
       >
         <img 
-          src={`https://sounny.ma/icons/${currentLanguage}.webp`} 
+          src={flagImages[currentLanguage]} 
           alt={languageLabels[currentLanguage]} 
           className="w-6 h-6"
         />
@@ -105,7 +117,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
                   }}
                   aria-label="Select Arabic language"
                 >
-                  <img src="https://sounny.ma/icons/ar.webp" alt="Arabic" />
+                  <img src={flagImages.ar} alt="Arabic" />
                   <span>العربية</span>
                 </motion.button>
                 
@@ -120,7 +132,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
                   }}
                   aria-label="Select French language"
                 >
-                  <img src="https://sounny.ma/icons/fr.webp" alt="Francais" />
+                  <img src={flagImages.fr} alt="Francais" />
                   <span>Français</span>
                 </motion.button>
                 
@@ -135,7 +147,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
                   }}
                   aria-label="Select Tamazight language"
                 >
-                  <img src="https://sounny.ma/icons/tm.webp" alt="Tamazight" />
+                  <img src={flagImages.tm} alt="Tamazight" />
                   <span>ⵜⴰⵎⴰⵣⵉⵖⵜ</span>
                 </motion.button>
               </div>
