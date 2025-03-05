@@ -90,8 +90,8 @@ export const useDashboard = () => {
     fetchReservations();
   }, [fetchReservations]);
   
-  // Get connection status from realtime subscription
-  const { connectionStatus } = useReservationSubscription({
+  // Set up realtime subscription
+  useReservationSubscription({
     onInsert: (newReservation) => {
       setState(prev => {
         const updatedReservations = [newReservation, ...prev.reservations];
@@ -193,7 +193,6 @@ export const useDashboard = () => {
     ...state,
     setSearchQuery,
     setStatusFilter,
-    connectionStatus,
     refreshData
   };
 };

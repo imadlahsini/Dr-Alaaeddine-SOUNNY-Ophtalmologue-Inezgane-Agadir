@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { logoutAdmin } from '../utils/api';
 import { clearAuthState } from '../utils/authUtils';
-import { Wifi, WifiOff } from 'lucide-react';
 
 // Hooks
 import { useAuthentication } from '../hooks/useAuthentication';
@@ -32,7 +31,6 @@ const NewDashboard: React.FC = () => {
     error,
     setSearchQuery,
     setStatusFilter,
-    connectionStatus,
     refreshData
   } = useDashboard();
 
@@ -78,12 +76,6 @@ const NewDashboard: React.FC = () => {
     setStatusFilter('All');
   }, [setSearchQuery, setStatusFilter]);
   
-  // Handle retry connection or refresh data
-  const handleRefresh = useCallback(() => {
-    refreshData();
-    toast.info('Refreshing reservation data...');
-  }, [refreshData]);
-  
   // Handle authentication checking
   if (isChecking) {
     return <DashboardLoading />;
@@ -98,29 +90,10 @@ const NewDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-full mx-auto px-2 py-2">
-        {/* Header with connection status */}
+        {/* Header */}
         <div className="flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold">Reservation Dashboard</h1>
-            {connectionStatus === 'connected' ? (
-              <span className="flex items-center text-xs text-green-600 gap-1">
-                <Wifi className="h-3 w-3" /> Live
-              </span>
-            ) : connectionStatus === 'connecting' ? (
-              <span className="flex items-center text-xs text-yellow-600 gap-1">
-                <Wifi className="h-3 w-3" /> Connecting...
-              </span>
-            ) : (
-              <span className="flex items-center text-xs text-red-600 gap-1">
-                <WifiOff className="h-3 w-3" /> Offline
-                <button 
-                  onClick={handleRefresh} 
-                  className="ml-2 text-blue-600 underline hover:text-blue-800"
-                >
-                  Refresh
-                </button>
-              </span>
-            )}
           </div>
           <button 
             onClick={handleLogout}
@@ -134,7 +107,7 @@ const NewDashboard: React.FC = () => {
         {isLoading ? (
           <DashboardLoading />
         ) : error ? (
-          <DashboardError error={error} onRetry={handleRefresh} />
+          <DashboardError error={error} onRetry={refreshData} />
         ) : (
           <>
             {/* Filters */}
@@ -149,7 +122,7 @@ const NewDashboard: React.FC = () => {
             
             {/* Reservations Lists */}
             {reservations.length === 0 ? (
-              <DashboardEmpty onRefresh={handleRefresh} />
+              <DashboardEmpty onRefresh={refreshData} />
             ) : filteredReservations.length === 0 ? (
               <NoResultsFound onClearFilters={clearFilters} />
             ) : (
