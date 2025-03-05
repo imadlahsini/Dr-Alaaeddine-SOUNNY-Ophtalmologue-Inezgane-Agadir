@@ -22,9 +22,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'PUT
     exit;
 }
 
-// Include database connection and authentication utilities
+// Include database connection, authentication utilities, and validation functions
 require_once '../../config/database.php';
 require_once '../../utils/auth.php';
+require_once './validation.php';
 
 // Authenticate the request
 $user = authenticateRequest();
@@ -33,13 +34,7 @@ $user = authenticateRequest();
 $data = json_decode(file_get_contents('php://input'), true);
 
 // Validate reservation ID
-if (!isset($data['id']) || empty($data['id']) || !is_numeric($data['id'])) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid reservation ID']);
-    exit;
-}
-
-$id = (int)$data['id'];
+$id = validateReservationId($data['id']);
 
 // Build update query based on provided fields
 $updates = [];
@@ -47,14 +42,7 @@ $params = [];
 
 // Status update
 if (isset($data['status']) && !empty($data['status'])) {
-    $validStatuses = ['Pending', 'Confirmed', 'Canceled', 'Not Responding'];
-    $status = sanitizeInput($data['status']);
-    
-    if (!in_array($status, $validStatuses)) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid status value']);
-        exit;
-    }
+    $status = validateStatus($data['status']);
     
     $updates[] = "status = ?";
     $params[] = $status;
@@ -73,43 +61,21 @@ if (isset($data['name']) && !empty($data['name'])) {
 
 // Phone update
 if (isset($data['phone']) && !empty($data['phone'])) {
-    $phone = sanitizeInput($data['phone']);
-    
-    if (!preg_match('/^\d{9,10}$/', $phone)) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid phone number format']);
-        exit;
-    }
-    
+    $phone = validatePhone($data['phone']);
     $updates[] = "phone = ?";
     $params[] = $phone;
 }
 
 // Date update
 if (isset($data['date']) && !empty($data['date'])) {
-    $date = sanitizeInput($data['date']);
-    
-    if (!preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $date)) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid date format. Use DD/MM/YYYY']);
-        exit;
-    }
-    
+    $date = validateDate($data['date']);
     $updates[] = "date = ?";
     $params[] = $date;
 }
 
 // Time slot update
 if (isset($data['timeSlot']) && !empty($data['timeSlot'])) {
-    $timeSlot = sanitizeInput($data['timeSlot']);
-    
-    $validTimeSlots = ['8h00-11h00', '11h00-14h00', '14h00-16h00'];
-    if (!in_array($timeSlot, $validTimeSlots)) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid time slot']);
-        exit;
-    }
-    
+    $timeSlot = validateTimeSlot($data['timeSlot']);
     $updates[] = "time_slot = ?";
     $params[] = $timeSlot;
 }
