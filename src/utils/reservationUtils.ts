@@ -15,13 +15,12 @@ export const calculateStats = (reservations: Reservation[]): Stats => {
 };
 
 /**
- * Applies filtering to a list of reservations based on search query, status, and date
+ * Applies filtering to a list of reservations based on search query and status
  */
 export const applyFilters = (
   reservations: Reservation[],
   searchQuery: string,
-  statusFilter: ReservationStatus | 'All',
-  dateFilter: string | null
+  statusFilter: ReservationStatus | 'All'
 ): Reservation[] => {
   return reservations.filter(reservation => {
     const matchesSearch = 
@@ -33,10 +32,6 @@ export const applyFilters = (
       statusFilter === 'All' || 
       reservation.status === statusFilter;
     
-    const matchesDate = 
-      !dateFilter || 
-      reservation.date === dateFilter;
-    
-    return matchesSearch && matchesStatus && matchesDate;
+    return matchesSearch && matchesStatus;
   });
 };

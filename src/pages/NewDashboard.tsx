@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { logoutAdmin } from '../utils/api';
@@ -17,20 +17,16 @@ import { DashboardLoading, DashboardError, DashboardEmpty, NoResultsFound } from
 const NewDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { isChecking, isAuth } = useAuthentication();
-  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const {
     reservations,
     filteredReservations,
     searchQuery,
     statusFilter,
-    dateFilter,
     isLoading,
     error,
     setSearchQuery,
     setStatusFilter,
-    setDateFilter,
-    refreshData
   } = useDashboard();
 
   // Handle logout
@@ -48,27 +44,11 @@ const NewDashboard: React.FC = () => {
     }
   };
   
-  // Handle manual refresh
-  const handleRefresh = async () => {
-    if (isRefreshing) return;
-    
-    setIsRefreshing(true);
-    try {
-      await refreshData();
-      toast.success('Dashboard refreshed');
-    } catch (error) {
-      console.error('Refresh error:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-  
   // Clear all filters
   const clearFilters = useCallback(() => {
     setSearchQuery('');
     setStatusFilter('All');
-    setDateFilter(null);
-  }, [setSearchQuery, setStatusFilter, setDateFilter]);
+  }, [setSearchQuery, setStatusFilter]);
   
   // Handle authentication checking
   if (isChecking) {
@@ -87,28 +67,19 @@ const NewDashboard: React.FC = () => {
         {/* Simple Header */}
         <div className="flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm">
           <h1 className="text-xl font-bold">Reservation Dashboard</h1>
-          <div className="flex gap-2">
-            <button 
-              onClick={handleRefresh}
-              className="px-3 py-1 bg-blue-500 text-white rounded-lg"
-              disabled={isRefreshing}
-            >
-              Refresh
-            </button>
-            <button 
-              onClick={handleLogout}
-              className="px-3 py-1 bg-gray-500 text-white rounded-lg"
-            >
-              Logout
-            </button>
-          </div>
+          <button 
+            onClick={handleLogout}
+            className="px-3 py-1 bg-gray-500 text-white rounded-lg"
+          >
+            Logout
+          </button>
         </div>
         
         {/* Main Content */}
         {isLoading ? (
           <DashboardLoading />
         ) : error ? (
-          <DashboardError error={error} onRetry={refreshData} />
+          <DashboardError error={error} onRetry={() => {}} />
         ) : (
           <>
             {/* Filters */}
@@ -118,14 +89,12 @@ const NewDashboard: React.FC = () => {
                 setSearchQuery={setSearchQuery}
                 statusFilter={statusFilter}
                 setStatusFilter={setStatusFilter}
-                dateFilter={dateFilter}
-                setDateFilter={setDateFilter}
               />
             </div>
             
             {/* Reservations Lists */}
             {reservations.length === 0 ? (
-              <DashboardEmpty onRefresh={handleRefresh} />
+              <DashboardEmpty onRefresh={() => {}} />
             ) : filteredReservations.length === 0 ? (
               <NoResultsFound onClearFilters={clearFilters} />
             ) : (

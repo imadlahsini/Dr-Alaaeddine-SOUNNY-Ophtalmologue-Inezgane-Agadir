@@ -65,7 +65,7 @@ export const useDashboard = () => {
         reservations, 
         state.searchQuery, 
         state.statusFilter, 
-        state.dateFilter
+        null
       );
       
       setState(prev => ({
@@ -85,7 +85,7 @@ export const useDashboard = () => {
       }));
       toast.error('Failed to load reservations');
     }
-  }, [state.searchQuery, state.statusFilter, state.dateFilter]);
+  }, [state.searchQuery, state.statusFilter]);
   
   // Set up the realtime subscription
   useReservationSubscription({
@@ -100,7 +100,7 @@ export const useDashboard = () => {
             updatedReservations,
             prev.searchQuery,
             prev.statusFilter,
-            prev.dateFilter
+            null
           ),
           stats: calculateStats(updatedReservations)
         };
@@ -119,7 +119,7 @@ export const useDashboard = () => {
             updatedReservations,
             prev.searchQuery,
             prev.statusFilter,
-            prev.dateFilter
+            null
           ),
           stats: calculateStats(updatedReservations)
         };
@@ -138,7 +138,7 @@ export const useDashboard = () => {
             updatedReservations,
             prev.searchQuery,
             prev.statusFilter,
-            prev.dateFilter
+            null
           ),
           stats: calculateStats(updatedReservations)
         };
@@ -160,7 +160,7 @@ export const useDashboard = () => {
         prev.reservations,
         query,
         prev.statusFilter,
-        prev.dateFilter
+        null
       );
       
       return {
@@ -180,7 +180,7 @@ export const useDashboard = () => {
         prev.reservations,
         prev.searchQuery,
         status,
-        prev.dateFilter
+        null
       );
       
       return {
@@ -191,32 +191,10 @@ export const useDashboard = () => {
     });
   };
   
-  /**
-   * Update date filter and filter reservations
-   */
-  const setDateFilter = (date: string | null) => {
-    setState(prev => {
-      const filtered = applyFilters(
-        prev.reservations,
-        prev.searchQuery,
-        prev.statusFilter,
-        date
-      );
-      
-      return {
-        ...prev,
-        dateFilter: date,
-        filteredReservations: filtered
-      };
-    });
-  };
-  
   return {
     ...state,
     setSearchQuery,
-    setStatusFilter,
-    setDateFilter,
-    refreshData: fetchReservations
+    setStatusFilter
   };
 };
 

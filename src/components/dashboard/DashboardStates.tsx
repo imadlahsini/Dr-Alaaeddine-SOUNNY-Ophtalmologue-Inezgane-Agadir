@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { RefreshCw, SearchX, AlertTriangle } from 'lucide-react';
+import { SearchX, AlertTriangle } from 'lucide-react';
 
 export const DashboardLoading: React.FC = () => {
   return (
@@ -13,26 +13,18 @@ export const DashboardLoading: React.FC = () => {
 };
 
 export const DashboardError: React.FC<{ error: string; onRetry: () => void }> = ({ 
-  error, 
-  onRetry 
+  error
 }) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-6">
       <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
       <h3 className="text-lg font-medium text-gray-800 mb-2">Something went wrong</h3>
       <p className="text-gray-500 mb-6 max-w-md">{error}</p>
-      <button
-        onClick={onRetry}
-        className="px-4 py-2 bg-primary text-white rounded-lg flex items-center gap-2 hover:bg-primary/90"
-      >
-        <RefreshCw className="h-4 w-4" />
-        <span>Try Again</span>
-      </button>
     </div>
   );
 };
 
-export const DashboardEmpty: React.FC<{ onRefresh: () => void }> = ({ onRefresh }) => {
+export const DashboardEmpty: React.FC<{ onRefresh: () => void }> = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-6 bg-white rounded-xl shadow-sm">
       <div className="bg-gray-100 p-6 rounded-full mb-4">
@@ -42,13 +34,6 @@ export const DashboardEmpty: React.FC<{ onRefresh: () => void }> = ({ onRefresh 
       <p className="text-gray-500 mb-6 max-w-md">
         When customers make reservations, they'll appear here. Check back later or create a test reservation.
       </p>
-      <button
-        onClick={onRefresh}
-        className="px-4 py-2 bg-primary text-white rounded-lg flex items-center gap-2 hover:bg-primary/90"
-      >
-        <RefreshCw className="h-4 w-4" />
-        <span>Refresh</span>
-      </button>
     </div>
   );
 };

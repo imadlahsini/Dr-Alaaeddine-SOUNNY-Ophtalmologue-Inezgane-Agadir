@@ -8,17 +8,13 @@ interface DashboardFiltersProps {
   setSearchQuery: (query: string) => void;
   statusFilter: ReservationStatus | 'All';
   setStatusFilter: (status: ReservationStatus | 'All') => void;
-  dateFilter: string | null;
-  setDateFilter: (date: string | null) => void;
 }
 
 const DashboardFiltersNew: React.FC<DashboardFiltersProps> = ({
   searchQuery,
   setSearchQuery,
   statusFilter,
-  setStatusFilter,
-  dateFilter,
-  setDateFilter
+  setStatusFilter
 }) => {
   return (
     <div className="bg-white p-3 rounded-lg shadow-sm grid gap-2 grid-cols-1">
@@ -47,25 +43,6 @@ const DashboardFiltersNew: React.FC<DashboardFiltersProps> = ({
           <option value="Not Responding">Not Responding</option>
           <option value="Canceled">Canceled</option>
         </select>
-      </div>
-      
-      {/* Date Filter */}
-      <div className="flex gap-2">
-        <input
-          type="date"
-          value={dateFilter || ''}
-          onChange={(e) => setDateFilter(e.target.value || null)}
-          placeholder="Select Date"
-          className="border border-gray-200 rounded-lg py-1 px-2 text-sm w-full h-10"
-        />
-        {dateFilter && (
-          <button
-            onClick={() => setDateFilter(null)}
-            className="border border-gray-200 rounded-lg px-2 text-sm"
-          >
-            Clear
-          </button>
-        )}
       </div>
     </div>
   );
