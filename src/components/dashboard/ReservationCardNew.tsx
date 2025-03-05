@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Calendar, Clock, User, Phone, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, Phone, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { Reservation, ReservationStatus } from '../../hooks/useDashboard';
 import { toast } from 'sonner';
 import { supabase } from '../../integrations/supabase/client';
@@ -8,62 +8,60 @@ import { supabase } from '../../integrations/supabase/client';
 interface ReservationCardProps {
   reservation: Reservation;
   onStatusChange: (id: string, status: ReservationStatus) => void;
+  compact?: boolean;
 }
 
 const ReservationCardNew: React.FC<ReservationCardProps> = ({
   reservation,
-  onStatusChange
+  onStatusChange,
+  compact = false
 }) => {
-  const statusColors = {
+  const statusConfig = {
     Pending: {
-      bg: 'bg-yellow-50',
-      text: 'text-yellow-700',
-      border: 'border-yellow-200',
       icon: <AlertTriangle className="w-4 h-4 text-yellow-500" />,
-      cardBg: 'bg-yellow-50',
-      headerBg: 'bg-yellow-100'
+      color: 'yellow',
+      bgColor: 'bg-yellow-50',
+      borderColor: 'border-yellow-100',
+      textColor: 'text-yellow-700'
     },
     Confirmed: {
-      bg: 'bg-green-50',
-      text: 'text-green-700',
-      border: 'border-green-200',
       icon: <CheckCircle className="w-4 h-4 text-green-500" />,
-      cardBg: 'bg-green-50',
-      headerBg: 'bg-green-100'
+      color: 'green',
+      bgColor: 'bg-green-50',
+      borderColor: 'border-green-100',
+      textColor: 'text-green-700'
     },
     Canceled: {
-      bg: 'bg-red-50',
-      text: 'text-red-700',
-      border: 'border-red-200',
       icon: <XCircle className="w-4 h-4 text-red-500" />,
-      cardBg: 'bg-red-50',
-      headerBg: 'bg-red-100'
+      color: 'red',
+      bgColor: 'bg-red-50',
+      borderColor: 'border-red-100',
+      textColor: 'text-red-700'
     },
     'Not Responding': {
-      bg: 'bg-gray-50',
-      text: 'text-gray-700',
-      border: 'border-gray-200',
       icon: <AlertTriangle className="w-4 h-4 text-gray-500" />,
-      cardBg: 'bg-gray-50',
-      headerBg: 'bg-gray-100'
+      color: 'gray',
+      bgColor: 'bg-gray-50',
+      borderColor: 'border-gray-100',
+      textColor: 'text-gray-700'
     }
   };
 
-  const statusStyle = statusColors[reservation.status] || statusColors.Pending;
+  const status = statusConfig[reservation.status] || statusConfig.Pending;
   
-  const handleStatusChange = async (status: ReservationStatus) => {
-    if (reservation.status === status) {
+  const handleStatusChange = async (newStatus: ReservationStatus) => {
+    if (reservation.status === newStatus) {
       return; // No change needed
     }
 
     try {
-      // Show toast first for immediate feedback
-      toast.info(`Updating to ${status}...`);
+      // Show toast for immediate feedback
+      toast.info(`Updating to ${newStatus}...`);
       
       // Direct update to database
       const { error } = await supabase
         .from('reservations')
-        .update({ status })
+        .update({ status: newStatus })
         .eq('id', reservation.id);
       
       if (error) {
@@ -71,21 +69,90 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
       }
       
       // Only update UI state after successful database update
-      onStatusChange(reservation.id, status);
+      onStatusChange(reservation.id, newStatus);
       
-      toast.success(`Status updated to ${status}`);
+      toast.success(`Status updated to ${newStatus}`);
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error(`Failed to update status: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
+  // Compact card design for 3-column layout
+  if (compact) {
+    return (
+      <div className={`rounded-lg border ${status.borderColor} overflow-hidden shadow-sm hover:shadow transition-all duration-200 ${status.bgColor}`}>
+        <div className="p-3">
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="font-medium text-gray-900 truncate">{reservation.name}</h3>
+            <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${status.bgColor} ${status.textColor}`}>
+              {status.icon}
+              <span className="ml-1">{reservation.status}</span>
+            </div>
+          </div>
+          
+          <div className="text-xs text-gray-600 space-y-1">
+            <div className="flex items-center">
+              <Phone className="w-3 h-3 text-gray-400 mr-1.5" />
+              <span className="truncate">{reservation.phone}</span>
+            </div>
+            
+            <div className="flex items-center">
+              <Calendar className="w-3 h-3 text-gray-400 mr-1.5" />
+              <span>{reservation.date}</span>
+            </div>
+            
+            <div className="flex items-center">
+              <Clock className="w-3 h-3 text-gray-400 mr-1.5" />
+              <span>{reservation.timeSlot}</span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Actions */}
+        {reservation.status !== 'Confirmed' && reservation.status !== 'Canceled' && (
+          <div className="flex border-t border-gray-100 divide-x divide-gray-100">
+            <button
+              onClick={() => handleStatusChange('Confirmed')}
+              className="flex-1 py-2 text-xs font-medium text-green-600 hover:bg-green-50 flex items-center justify-center"
+            >
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Confirm
+            </button>
+            
+            <button
+              onClick={() => handleStatusChange('Canceled')}
+              className="flex-1 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center justify-center"
+            >
+              <XCircle className="w-3 h-3 mr-1" />
+              Cancel
+            </button>
+          </div>
+        )}
+        
+        {/* Return to pending button for confirmed/canceled cards */}
+        {(reservation.status === 'Confirmed' || reservation.status === 'Canceled') && (
+          <div className="border-t border-gray-100">
+            <button
+              onClick={() => handleStatusChange('Pending')}
+              className="w-full py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center justify-center"
+            >
+              <AlertTriangle className="w-3 h-3 mr-1" />
+              Mark as Pending
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Original card design (for backward compatibility)
   return (
-    <div className={`rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200 ${statusStyle.cardBg}`}>
+    <div className={`rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200 ${status.bgColor}`}>
       {/* Header */}
-      <div className={`flex justify-between items-center px-5 py-4 ${statusStyle.headerBg}`}>
-        <div className={`flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}>
-          {statusStyle.icon}
+      <div className={`flex justify-between items-center px-5 py-4 ${status.bgColor}`}>
+        <div className={`flex items-center px-3 py-1 rounded-full text-sm font-medium ${status.bgColor} ${status.textColor} ${status.borderColor}`}>
+          {status.icon}
           <span className="ml-1.5">{reservation.status}</span>
         </div>
       </div>
@@ -113,7 +180,7 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
       </div>
 
       {/* Actions */}
-      <div className={`border-t ${statusStyle.border} px-5 py-3`}>
+      <div className={`border-t ${status.borderColor} px-5 py-3`}>
         <div className="flex flex-wrap gap-2 justify-center">
           <button
             onClick={() => handleStatusChange('Confirmed')}

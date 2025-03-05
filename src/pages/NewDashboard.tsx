@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { logoutAdmin } from '../utils/api';
 import { clearAuthState } from '../utils/authUtils';
-import { CalendarDays, Users, Calendar, BadgeCheck, XCircle, AlertTriangle } from 'lucide-react';
+import { CalendarDays, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 
 // Hooks
 import { useAuthentication } from '../hooks/useAuthentication';
@@ -39,6 +39,11 @@ const NewDashboard: React.FC = () => {
     updateReservationStatus,
     refreshData
   } = useDashboard();
+
+  // Filter reservations by status
+  const pendingReservations = filteredReservations.filter(r => r.status === 'Pending' || r.status === 'Not Responding');
+  const confirmedReservations = filteredReservations.filter(r => r.status === 'Confirmed');
+  const canceledReservations = filteredReservations.filter(r => r.status === 'Canceled');
 
   // Handle logout
   const handleLogout = async () => {
@@ -95,6 +100,30 @@ const NewDashboard: React.FC = () => {
     return null;
   }
 
+  // Column render helper function
+  const renderColumn = (title, icon, color, reservations, emptyMessage) => (
+    <div className="flex flex-col h-full">
+      <div className={`sticky top-0 z-10 flex items-center gap-2 mb-3 p-3 bg-white rounded-lg shadow-sm text-${color}-600 font-semibold`}>
+        {icon}
+        <h2>{title} ({reservations.length})</h2>
+      </div>
+      <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+        {reservations.length === 0 ? (
+          <div className="text-center py-6 text-gray-500 italic">{emptyMessage}</div>
+        ) : (
+          reservations.map((reservation) => (
+            <ReservationCardNew
+              key={reservation.id}
+              reservation={reservation}
+              onStatusChange={updateReservationStatus}
+              compact={true}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -129,13 +158,13 @@ const NewDashboard: React.FC = () => {
               <StatsCardNew 
                 title="Confirmed" 
                 value={stats.confirmed} 
-                icon={BadgeCheck}
+                icon={CheckCircle}
                 iconColor="text-green-600"
               />
               <StatsCardNew 
                 title="Pending" 
                 value={stats.pending} 
-                icon={Calendar}
+                icon={AlertTriangle}
                 iconColor="text-yellow-600"
               />
               <StatsCardNew 
@@ -158,20 +187,45 @@ const NewDashboard: React.FC = () => {
               />
             </div>
             
-            {/* Reservations */}
+            {/* Reservations Columns */}
             {reservations.length === 0 ? (
               <DashboardEmpty onRefresh={handleRefresh} />
             ) : filteredReservations.length === 0 ? (
               <NoResultsFound onClearFilters={clearFilters} />
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                {filteredReservations.map((reservation) => (
-                  <ReservationCardNew
-                    key={reservation.id}
-                    reservation={reservation}
-                    onStatusChange={updateReservationStatus}
-                  />
-                ))}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {/* Pending Column */}
+                <div className="bg-white rounded-xl shadow-sm p-3 min-h-[600px] max-h-[70vh] flex flex-col">
+                  {renderColumn(
+                    "Pending Reservations",
+                    <AlertTriangle className="w-5 h-5" />,
+                    "yellow",
+                    pendingReservations,
+                    "No pending reservations"
+                  )}
+                </div>
+                
+                {/* Confirmed Column */}
+                <div className="bg-white rounded-xl shadow-sm p-3 min-h-[600px] max-h-[70vh] flex flex-col">
+                  {renderColumn(
+                    "Confirmed Reservations",
+                    <CheckCircle className="w-5 h-5" />,
+                    "green",
+                    confirmedReservations,
+                    "No confirmed reservations"
+                  )}
+                </div>
+                
+                {/* Canceled Column */}
+                <div className="bg-white rounded-xl shadow-sm p-3 min-h-[600px] max-h-[70vh] flex flex-col">
+                  {renderColumn(
+                    "Canceled Reservations",
+                    <XCircle className="w-5 h-5" />,
+                    "red",
+                    canceledReservations,
+                    "No canceled reservations"
+                  )}
+                </div>
               </div>
             )}
             
