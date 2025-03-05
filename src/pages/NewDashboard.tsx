@@ -126,7 +126,7 @@ const NewDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 sm:py-8 lg:px-8">
         {/* Header */}
         <DashboardHeaderNew
           onLogout={handleLogout}
@@ -136,7 +136,7 @@ const NewDashboard: React.FC = () => {
         />
         
         {/* Notification Settings */}
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm mb-6">
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm mb-4 sm:mb-6">
           <NotificationSettings />
         </div>
         
@@ -148,7 +148,7 @@ const NewDashboard: React.FC = () => {
         ) : (
           <>
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 mb-4 sm:mb-6">
               <StatsCardNew 
                 title="Total Reservations" 
                 value={stats.total} 
@@ -176,7 +176,7 @@ const NewDashboard: React.FC = () => {
             </div>
             
             {/* Filters */}
-            <div className="mb-6">
+            <div className="mb-4 sm:mb-6">
               <DashboardFiltersNew
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
@@ -193,9 +193,9 @@ const NewDashboard: React.FC = () => {
             ) : filteredReservations.length === 0 ? (
               <NoResultsFound onClearFilters={clearFilters} />
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-3">
                 {/* Pending Column */}
-                <div className="bg-white rounded-xl shadow-sm p-3 min-h-[600px] max-h-[70vh] flex flex-col">
+                <div className="bg-white rounded-xl shadow-sm p-3 min-h-[400px] max-h-[500px] md:min-h-[600px] md:max-h-[70vh] flex flex-col overflow-hidden">
                   {renderColumn(
                     "Pending Reservations",
                     <AlertTriangle className="w-5 h-5" />,
@@ -206,7 +206,7 @@ const NewDashboard: React.FC = () => {
                 </div>
                 
                 {/* Confirmed Column */}
-                <div className="bg-white rounded-xl shadow-sm p-3 min-h-[600px] max-h-[70vh] flex flex-col">
+                <div className="bg-white rounded-xl shadow-sm p-3 min-h-[400px] max-h-[500px] md:min-h-[600px] md:max-h-[70vh] flex flex-col overflow-hidden">
                   {renderColumn(
                     "Confirmed Reservations",
                     <CheckCircle className="w-5 h-5" />,
@@ -217,7 +217,7 @@ const NewDashboard: React.FC = () => {
                 </div>
                 
                 {/* Canceled Column */}
-                <div className="bg-white rounded-xl shadow-sm p-3 min-h-[600px] max-h-[70vh] flex flex-col">
+                <div className="bg-white rounded-xl shadow-sm p-3 min-h-[400px] max-h-[500px] md:min-h-[600px] md:max-h-[70vh] flex flex-col overflow-hidden">
                   {renderColumn(
                     "Canceled Reservations",
                     <XCircle className="w-5 h-5" />,

@@ -47,6 +47,19 @@ function App() {
     // Run viewport update once
     updateViewport();
     
+    // Fix for mobile viewport height (100vh issue)
+    const setVhProperty = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+    
+    // Set it initially
+    setVhProperty();
+    
+    // Update on resize and orientation change
+    window.addEventListener('resize', setVhProperty);
+    window.addEventListener('orientationchange', setVhProperty);
+    
     // Apply some base styles to ensure proper mobile rendering
     const applyMobileStyles = () => {
       // Check if styles already applied to avoid duplicates
@@ -86,6 +99,11 @@ function App() {
       sessionStorage.removeItem('realtime_toast_shown');
       sessionStorage.setItem('app_initialized', 'true');
     }
+    
+    return () => {
+      window.removeEventListener('resize', setVhProperty);
+      window.removeEventListener('orientationchange', setVhProperty);
+    };
   }, []);
 
   return (
