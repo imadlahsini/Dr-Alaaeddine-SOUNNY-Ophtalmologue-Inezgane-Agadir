@@ -105,7 +105,14 @@ export const useDashboard = () => {
         lastRefreshed: new Date()
       }));
       
-      localStatusUpdatesRef.current = {};
+      // Clear local status updates that match database values
+      const newLocalStatusUpdates = { ...localStatusUpdatesRef.current };
+      for (const r of reservations) {
+        if (newLocalStatusUpdates[r.id] === r.status) {
+          delete newLocalStatusUpdates[r.id];
+        }
+      }
+      localStatusUpdatesRef.current = newLocalStatusUpdates;
     } catch (error) {
       console.error('Error fetching reservations:', error);
       setState(prev => ({
@@ -213,6 +220,7 @@ export const useDashboard = () => {
       
       console.log(`Handling status update for reservation ${id} to ${status} in useDashboard`);
       
+      // First, update local UI state for immediate feedback
       setState(prev => {
         const updatedReservations = prev.reservations.map(reservation => 
           reservation.id === id ? { ...reservation, status } : reservation
@@ -233,8 +241,11 @@ export const useDashboard = () => {
         };
       });
       
+      // Track status update locally in case of network issues
       localStatusUpdatesRef.current[id] = status;
       
+      // Set manual_update flag to true to indicate this is a UI-driven update
+      // This is critical to ensure the webhook doesn't override our change
       const { error } = await supabase
         .from('reservations')
         .update({
@@ -249,8 +260,10 @@ export const useDashboard = () => {
         throw error;
       }
       
+      // Add a short delay before verifying to allow webhook to process
       await new Promise(resolve => setTimeout(resolve, 2000));
       
+      // Verify the status update was successful
       const { data, error: checkError } = await supabase
         .from('reservations')
         .select('status, manual_update')
@@ -259,15 +272,34 @@ export const useDashboard = () => {
       
       if (checkError) {
         console.warn('Error verifying status update:', checkError);
+        toast.error('Unable to verify status update');
       } else if (data.status !== status) {
         console.warn(`Status verification failed: Database has ${data.status}, but UI expected ${status}`);
         console.log(`Keeping local status update for ${id} as ${status} despite database having ${data.status}`);
+        
+        // Retry the update with a stronger approach - this is a fallback
+        const { error: retryError } = await supabase
+          .from('reservations')
+          .update({
+            status,
+            manual_update: true
+          })
+          .eq('id', id);
+          
+        if (retryError) {
+          console.error('Error in retry update:', retryError);
+        } else {
+          console.log(`Retried status update for ${id}`);
+          // Keep the local status reference until next verification
+        }
       } else {
         console.log(`Verified: Database status for ${id} is ${data.status} as expected`);
         delete localStatusUpdatesRef.current[id];
+        toast.success(`Status updated to ${status}`);
       }
     } catch (error) {
       console.error('Error handling status update in useDashboard:', error);
+      toast.error('Error updating status');
     } finally {
       setIsUpdating(prev => ({ ...prev, [id]: false }));
     }
@@ -334,8 +366,16 @@ export const useDashboard = () => {
             return;
           }
           
+          // Protect our local status updates from being overridden by external updates
           if (localStatusUpdatesRef.current[payload.new.id]) {
             console.log(`Preserving local status update for ${payload.new.id} over external update`);
+            
+            // If this update is clearing the manual_update flag, we should keep our local status
+            // but allow the manual_update flag to be cleared
+            if (payload.old.manual_update === true && payload.new.manual_update === null) {
+              console.log(`Manual update flag cleared for ${payload.new.id}, but keeping local status`);
+            }
+            
             return;
           }
           

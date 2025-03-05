@@ -1,3 +1,4 @@
+
 /**
  * API configuration and utility functions using Supabase
  */
@@ -135,8 +136,10 @@ export async function updateReservation(
     }
     
     // IMPORTANT: Set manual_update flag for status changes
+    // This signals to the webhook that this change was made manually from the UI
     if (updates.status) {
       supabaseUpdates.manual_update = true;
+      console.log(`Setting manual_update flag for reservation ${id} with status ${updates.status}`);
     }
     
     const { error } = await supabase
@@ -169,6 +172,22 @@ export async function updateReservation(
       // Check if status was updated correctly (if it was part of the updates)
       if (updates.status && verificationData.status !== updates.status) {
         console.warn(`Status verification failed: Expected ${updates.status}, got ${verificationData.status}`);
+        
+        // Retry the update if verification failed
+        console.log(`Retrying update for reservation ${id} with status ${updates.status}`);
+        const { error: retryError } = await supabase
+          .from('reservations')
+          .update({
+            ...supabaseUpdates,
+            manual_update: true
+          })
+          .eq('id', id);
+          
+        if (retryError) {
+          console.error('Retry update error:', retryError);
+        } else {
+          console.log(`Retry update for reservation ${id} succeeded`);
+        }
       }
     }
     

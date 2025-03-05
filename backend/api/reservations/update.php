@@ -58,6 +58,10 @@ if (isset($data['status']) && !empty($data['status'])) {
     
     $updates[] = "status = ?";
     $params[] = $status;
+    
+    // Add manual_update flag when status is updated from the dashboard
+    $updates[] = "manual_update = ?";
+    $params[] = 1; // Set to true (1) to indicate this is a manual update
 }
 
 // Name update
@@ -135,9 +139,27 @@ try {
         exit;
     }
     
+    // After a successful update, verify the update was successful
+    $verifyStmt = $pdo->prepare("SELECT status FROM reservations WHERE id = ?");
+    $verifyStmt->execute([$id]);
+    $verifiedData = $verifyStmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Log the verification for debugging
+    error_log("Update verification for reservation $id: " . json_encode($verifiedData));
+    
+    if (isset($data['status']) && $verifiedData && $verifiedData['status'] !== $data['status']) {
+        error_log("Status verification failed: Expected {$data['status']}, got {$verifiedData['status']}");
+        
+        // Retry the update (optional fallback)
+        $retryStmt = $pdo->prepare($sql);
+        $retryStmt->execute($params);
+        error_log("Retried update for reservation $id");
+    }
+    
     http_response_code(200);
     echo json_encode(['success' => true, 'message' => 'Reservation updated successfully']);
 } catch (PDOException $e) {
+    error_log("Database error: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Error updating reservation']);
 }

@@ -3,7 +3,6 @@ import React from 'react';
 import { Calendar, Clock, Phone, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { Reservation, ReservationStatus } from '../../hooks/useDashboard';
 import { toast } from 'sonner';
-import { supabase } from '../../integrations/supabase/client';
 
 interface ReservationCardProps {
   reservation: Reservation;

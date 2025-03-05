@@ -26,15 +26,15 @@ serve(async (req) => {
 
     console.log(`Webhook received ${type} event for record:`, record);
 
-    // IMPORTANT FIX: properly handle manual updates vs webhook updates
+    // Handle manual updates from dashboard vs automated updates
     if (type === 'UPDATE' && body.old) {
       const statusChanged = body.old.status !== record.status;
       
-      // If this update has the manual_update flag set, it's from the dashboard UI
+      // Check if this is a manual update from the dashboard UI
       if (record.manual_update === true) {
         console.log(`Manual update detected for ID ${record.id} (${body.old.status} -> ${record.status}). Processing...`);
         
-        // Clear the manual_update flag but don't change the status that was manually set
+        // Clear the manual_update flag but preserve the manually set status
         const { error } = await supabaseAdmin
           .from('reservations')
           .update({ manual_update: null })
@@ -47,7 +47,7 @@ serve(async (req) => {
         
         console.log(`Cleared manual_update flag for ID: ${record.id}, preserving status: ${record.status}`);
         
-        // Skip webhook processing for manual updates
+        // Skip webhook notification for manual updates to avoid status loops
         const webhookResponse = {
           success: true,
           message: 'Manual update processed, webhook notification skipped'
@@ -59,7 +59,7 @@ serve(async (req) => {
         });
       }
       
-      // Handle external automatic updates (not from dashboard)
+      // Handle automatic status updates (from external systems, not the dashboard)
       const isStatusOnlyChange = 
         body.old.name === record.name && 
         body.old.phone === record.phone && 
@@ -67,11 +67,31 @@ serve(async (req) => {
         body.old.time_slot === record.time_slot &&
         body.old.status !== record.status;
       
-      // We consider it automatic if only status changed and manual_update is NOT true
       if (isStatusOnlyChange && record.manual_update !== true) {
-        console.log(`Possible automatic status change detected (${body.old.status} -> ${record.status}). Validating...`);
+        console.log(`Automatic status change detected (${body.old.status} -> ${record.status}). Validating...`);
         
-        // IMPORTANT: Check if this update came from an external system
+        // IMPORTANT: Check if status was manually set previously and should be preserved
+        const { data: statusData } = await supabaseAdmin
+          .from('reservations')
+          .select('status, manual_update')
+          .eq('id', record.id)
+          .single();
+          
+        if (statusData && statusData.manual_update === true) {
+          console.log(`Preserving manually set status: ${statusData.status} for ID: ${record.id}`);
+          
+          // Skip automatic update for this reservation
+          const preserveResponse = {
+            success: true,
+            message: 'Manual status preserved, automatic update skipped'
+          };
+          
+          return new Response(JSON.stringify(preserveResponse), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          });
+        }
+        
         console.log(`Processing external status update for ID: ${record.id}`);
       }
     }
