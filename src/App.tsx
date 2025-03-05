@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Index from './pages/Index';
 import ThankYou from './pages/ThankYou';
 import Admin from './pages/Admin';
-import Dashboard from './pages/Dashboard';
+import NewDashboard from './pages/NewDashboard';
 import NotFound from './pages/NotFound';
 import TelegramConfig from './pages/TelegramConfig';
 import { Toaster } from "sonner";
@@ -95,7 +95,7 @@ function App() {
         <Route path="/" element={<Index />} />
         <Route path="/thank-you" element={<ThankYou />} />
         <Route path="/admin" element={<Admin />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<NewDashboard />} />
         <Route path="/telegram-config" element={<TelegramConfig />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
