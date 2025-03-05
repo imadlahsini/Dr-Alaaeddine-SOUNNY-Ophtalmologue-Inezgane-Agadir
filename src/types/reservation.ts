@@ -25,7 +25,6 @@ export interface DashboardState {
   stats: Stats;
   searchQuery: string;
   statusFilter: ReservationStatus | 'All';
-  dateFilter: string | null;
   isLoading: boolean;
   error: string | null;
   lastRefreshed: Date | null;
