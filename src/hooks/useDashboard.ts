@@ -2,35 +2,27 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
-import { 
-  Reservation, 
-  ReservationStatus, 
-  DashboardState 
-} from '../types/reservation';
-import { calculateStats, applyFilters } from '../utils/reservationUtils';
+import { Reservation } from '../types/reservation';
 import { useReservationSubscription } from './useReservationSubscription';
 
 /**
  * Main dashboard hook that combines reservation fetching, filtering, and realtime updates
  */
 export const useDashboard = () => {
-  const [state, setState] = useState<DashboardState>({
-    reservations: [],
-    filteredReservations: [],
-    stats: { total: 0, confirmed: 0, pending: 0, canceled: 0, notResponding: 0 },
-    searchQuery: '',
-    statusFilter: 'All',
-    isLoading: true,
-    error: null,
-    lastRefreshed: null
-  });
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [filteredReservations, setFilteredReservations] = useState<Reservation[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   
   /**
    * Fetch reservations from Supabase and apply filters
    */
   const fetchReservations = useCallback(async () => {
     try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      setIsLoading(true);
+      setError(null);
       
       console.log('Fetching reservations from database...');
       
@@ -45,45 +37,42 @@ export const useDashboard = () => {
       
       console.log('Raw reservation data from Supabase:', data);
       
-      const reservations: Reservation[] = data.map(item => ({
+      const processedReservations: Reservation[] = data.map(item => ({
         id: item.id,
         name: item.name,
         phone: item.phone,
         date: item.date,
         timeSlot: item.time_slot,
-        status: item.status as ReservationStatus,
+        status: item.status,
         createdAt: item.created_at
       }));
       
-      console.log('Processed reservations with statuses:', 
-        reservations.map(r => ({ id: r.id, name: r.name, status: r.status })));
-      
-      const stats = calculateStats(reservations);
-      
-      const filtered = applyFilters(
-        reservations, 
-        state.searchQuery, 
-        state.statusFilter
-      );
-      
-      setState(prev => ({
-        ...prev,
-        reservations,
-        filteredReservations: filtered,
-        stats,
-        isLoading: false,
-        lastRefreshed: new Date()
-      }));
+      setReservations(processedReservations);
+      applyFilters(processedReservations, searchQuery);
+      setIsLoading(false);
+      setLastRefreshed(new Date());
     } catch (error) {
       console.error('Error fetching reservations:', error);
-      setState(prev => ({
-        ...prev,
-        error: 'Failed to load reservations',
-        isLoading: false
-      }));
+      setError('Failed to load reservations');
+      setIsLoading(false);
       toast.error('Failed to load reservations');
     }
-  }, [state.searchQuery, state.statusFilter]);
+  }, [searchQuery]);
+  
+  // Apply filters based on search query
+  const applyFilters = (reservationList: Reservation[], query: string) => {
+    if (!query) {
+      setFilteredReservations(reservationList);
+      return;
+    }
+    
+    const filtered = reservationList.filter(reservation => {
+      return reservation.name.toLowerCase().includes(query.toLowerCase()) ||
+             reservation.phone.includes(query);
+    });
+    
+    setFilteredReservations(filtered);
+  };
   
   // Manual refresh function
   const refreshData = useCallback(() => {
@@ -93,55 +82,28 @@ export const useDashboard = () => {
   // Set up realtime subscription
   useReservationSubscription({
     onInsert: (newReservation) => {
-      setState(prev => {
-        const updatedReservations = [newReservation, ...prev.reservations];
-        
-        return {
-          ...prev,
-          reservations: updatedReservations,
-          filteredReservations: applyFilters(
-            updatedReservations,
-            prev.searchQuery,
-            prev.statusFilter
-          ),
-          stats: calculateStats(updatedReservations)
-        };
+      setReservations(prev => {
+        const updatedReservations = [newReservation, ...prev];
+        applyFilters(updatedReservations, searchQuery);
+        return updatedReservations;
       });
     },
     onUpdate: (updatedReservation) => {
-      setState(prev => {
-        const updatedReservations = prev.reservations.map(reservation => 
+      setReservations(prev => {
+        const updatedReservations = prev.map(reservation => 
           reservation.id === updatedReservation.id ? updatedReservation : reservation
         );
-        
-        return {
-          ...prev,
-          reservations: updatedReservations,
-          filteredReservations: applyFilters(
-            updatedReservations,
-            prev.searchQuery,
-            prev.statusFilter
-          ),
-          stats: calculateStats(updatedReservations)
-        };
+        applyFilters(updatedReservations, searchQuery);
+        return updatedReservations;
       });
     },
     onDelete: (id) => {
-      setState(prev => {
-        const updatedReservations = prev.reservations.filter(
+      setReservations(prev => {
+        const updatedReservations = prev.filter(
           reservation => reservation.id !== id
         );
-        
-        return {
-          ...prev,
-          reservations: updatedReservations,
-          filteredReservations: applyFilters(
-            updatedReservations,
-            prev.searchQuery,
-            prev.statusFilter
-          ),
-          stats: calculateStats(updatedReservations)
-        };
+        applyFilters(updatedReservations, searchQuery);
+        return updatedReservations;
       });
     }
   });
@@ -154,47 +116,21 @@ export const useDashboard = () => {
   /**
    * Update search query and filter reservations
    */
-  const setSearchQuery = (query: string) => {
-    setState(prev => {
-      const filtered = applyFilters(
-        prev.reservations,
-        query,
-        prev.statusFilter
-      );
-      
-      return {
-        ...prev,
-        searchQuery: query,
-        filteredReservations: filtered
-      };
-    });
-  };
-  
-  /**
-   * Update status filter and filter reservations
-   */
-  const setStatusFilter = (status: ReservationStatus | 'All') => {
-    setState(prev => {
-      const filtered = applyFilters(
-        prev.reservations,
-        prev.searchQuery,
-        status
-      );
-      
-      return {
-        ...prev,
-        statusFilter: status,
-        filteredReservations: filtered
-      };
-    });
+  const handleSetSearchQuery = (query: string) => {
+    setSearchQuery(query);
+    applyFilters(reservations, query);
   };
   
   return {
-    ...state,
-    setSearchQuery,
-    setStatusFilter,
+    reservations,
+    filteredReservations,
+    searchQuery,
+    isLoading,
+    error,
+    lastRefreshed,
+    setSearchQuery: handleSetSearchQuery,
     refreshData
   };
 };
 
-export type { ReservationStatus, Reservation } from '../types/reservation';
+export type { Reservation } from '../types/reservation';

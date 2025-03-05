@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
-import { Reservation, ReservationStatus } from '../types/reservation';
+import { Reservation } from '../types/reservation';
 
 interface UseReservationSubscriptionProps {
   onInsert: (reservation: Reservation) => void;
@@ -42,7 +42,7 @@ export const useReservationSubscription = ({
           phone: payload.new.phone,
           date: payload.new.date,
           timeSlot: payload.new.time_slot,
-          status: payload.new.status as ReservationStatus,
+          status: payload.new.status,
           createdAt: payload.new.created_at
         };
         
@@ -66,23 +66,11 @@ export const useReservationSubscription = ({
           phone: payload.new.phone,
           date: payload.new.date,
           timeSlot: payload.new.time_slot,
-          status: payload.new.status as ReservationStatus,
+          status: payload.new.status,
           createdAt: payload.new.created_at
         };
         
-        // Show a status update notification if status changed
-        if (payload.old.status !== payload.new.status) {
-          console.log(`Status changed: ${payload.old.status} → ${payload.new.status}`);
-          
-          // Only show toast if this was NOT a manual update from this device
-          if (!payload.new.manual_update) {
-            toast.info(`Reservation status updated`, {
-              description: `${updatedReservation.name}: ${payload.old.status} → ${payload.new.status}`
-            });
-          }
-        }
-        
-        console.log(`Calling onUpdate for reservation ${updatedReservation.id}, status: ${updatedReservation.status}`);
+        console.log(`Calling onUpdate for reservation ${updatedReservation.id}`);
         onUpdate(updatedReservation);
       })
       .on('postgres_changes', {

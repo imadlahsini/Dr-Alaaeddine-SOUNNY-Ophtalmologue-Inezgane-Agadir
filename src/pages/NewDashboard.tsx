@@ -13,47 +13,20 @@ import { useDashboard } from '../hooks/useDashboard';
 import DashboardFiltersNew from '../components/dashboard/DashboardFiltersNew';
 import ReservationCardNew from '../components/dashboard/ReservationCardNew';
 import { DashboardLoading, DashboardError, DashboardEmpty, NoResultsFound } from '../components/dashboard/DashboardStates';
-import { Reservation } from '../types/reservation';
 
 const NewDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { isChecking, isAuth } = useAuthentication();
   
-  // Track reservations with pending updates
-  const [updatingReservations, setUpdatingReservations] = useState<Set<string>>(new Set());
-  
   const {
     reservations,
     filteredReservations,
     searchQuery,
-    statusFilter,
     isLoading,
     error,
     setSearchQuery,
-    setStatusFilter,
     refreshData
   } = useDashboard();
-
-  // Handle status update
-  const handleStatusUpdate = (updatedReservation: Reservation) => {
-    // Return a new Set instead of just performing actions in the function
-    setUpdatingReservations(prev => {
-      const newSet = new Set(prev);
-      newSet.add(updatedReservation.id);
-      return newSet; // Return the new Set
-    });
-    
-    // Set a timeout to remove the ID after a short delay
-    setTimeout(() => {
-      setUpdatingReservations(current => {
-        const updated = new Set(current);
-        updated.delete(updatedReservation.id);
-        return updated;
-      });
-    }, 2000); // Clear updating state after 2 seconds
-    
-    toast.success(`Updated ${updatedReservation.name}'s reservation to ${updatedReservation.status}`);
-  };
 
   // Handle logout
   const handleLogout = async () => {
@@ -73,8 +46,7 @@ const NewDashboard: React.FC = () => {
   // Clear all filters
   const clearFilters = useCallback(() => {
     setSearchQuery('');
-    setStatusFilter('All');
-  }, [setSearchQuery, setStatusFilter]);
+  }, [setSearchQuery]);
   
   // Handle authentication checking
   if (isChecking) {
@@ -115,8 +87,6 @@ const NewDashboard: React.FC = () => {
               <DashboardFiltersNew
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
-                statusFilter={statusFilter}
-                setStatusFilter={setStatusFilter}
               />
             </div>
             
@@ -136,7 +106,6 @@ const NewDashboard: React.FC = () => {
                         key={reservation.id}
                         reservation={reservation}
                         compact={true}
-                        onStatusUpdate={handleStatusUpdate}
                       />
                     ))}
                   </div>
