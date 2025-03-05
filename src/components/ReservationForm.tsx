@@ -199,10 +199,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
       });
       
       if (result.success) {
-        // Reservation successful, try to send notifications
         let telegramSuccess = false;
         
-        // Try to send Telegram notification (if available)
         try {
           console.log('Attempting to send Telegram notification...');
           console.log('Notification data:', JSON.stringify({
@@ -222,10 +220,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
           console.log('Telegram notification result:', telegramResult);
           telegramSuccess = telegramResult.success;
           
-          // Handle configuration needed case, but don't block the flow
           if (!telegramResult.success) {
             if (telegramResult.needsConfiguration) {
-              // Only show admin message if user is authenticated
               const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
               if (isAuthenticated) {
                 toast(
@@ -240,7 +236,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
                 );
               }
             } else {
-              // Log the error but don't show to end users
               console.warn('Telegram notification failed:', telegramResult.message);
             }
           }
@@ -248,7 +243,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
           console.warn('Telegram notification failed, but reservation was saved:', telegramError);
         }
         
-        // Send browser push notification for admins
         try {
           console.log('Attempting to send push notification for admins...');
           const notificationSent = sendReservationNotification({
@@ -262,10 +256,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
           console.warn('Push notification failed, but reservation was saved:', pushError);
         }
         
-        // Show success message to the user
         toast.success(t.success);
         
-        // If we're in admin mode and Telegram failed, show an additional toast
         const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
         if (isAuthenticated && !telegramSuccess) {
           toast.info('Reservation saved, but Telegram notification failed', {
@@ -273,7 +265,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
           });
         }
         
-        // Navigate to the thank-you page with the reservation data
         setTimeout(() => {
           navigate('/thank-you', { 
             state: { 
@@ -299,6 +290,49 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
 
   const isRtl = language === 'ar';
 
+  const renderIcon = (icon: React.ReactNode) => {
+    return (
+      <span className={`inline-flex ${isRtl ? 'ml-1' : 'mr-1'}`}>
+        {icon}
+      </span>
+    );
+  };
+
+  const renderSubmitButton = () => {
+    return (
+      <motion.button
+        type="submit"
+        className="primary-button group"
+        disabled={!formValid || isSubmitting}
+        whileHover={{ y: -2, boxShadow: '0 6px 15px rgba(0, 0, 0, 0.15)' }}
+        whileTap={{ scale: 0.98 }}
+      >
+        {isSubmitting ? (
+          <span className="flex items-center justify-center">
+            {t.form.submitting} 
+            <Loader2 className={`${isRtl ? 'mr-2' : 'ml-2'} animate-spin w-5 h-5`} />
+          </span>
+        ) : (
+          <span className="flex items-center justify-center">
+            {t.form.submit}
+            <motion.span
+              className={`${isRtl ? 'mr-2 rotate-180' : 'ml-2'}`}
+              initial={{ x: 0 }}
+              animate={{ x: isRtl ? -5 : 5 }}
+              transition={{ 
+                repeat: Infinity, 
+                repeatType: "reverse", 
+                duration: 0.6 
+              }}
+            >
+              <ArrowRight className="w-5 h-5" />
+            </motion.span>
+          </span>
+        )}
+      </motion.button>
+    );
+  };
+
   return (
     <motion.form 
       className={`form-appear w-full max-w-md p-5 bg-white rounded-[20px] shadow-md flex flex-col gap-8 ${isRtl ? 'text-right' : 'text-left'}`}
@@ -309,8 +343,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
       dir={isRtl ? 'rtl' : 'ltr'}
     >
       <div className="form-group">
-        <label htmlFor="date">
-          <Calendar className="w-4 h-4 mr-1" /> {t.form.date.label}
+        <label htmlFor="date" className="flex items-center">
+          {renderIcon(<Calendar className="w-4 h-4" />)} {t.form.date.label}
         </label>
         <select 
           id="date" 
@@ -338,11 +372,12 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
         onChange={handleTimeSlotChange}
         value={formData.timeSlot}
         labels={t.form.time}
+        isRtl={isRtl}
       />
 
       <div className="form-group">
-        <label htmlFor="name">
-          <User className="w-4 h-4 mr-1" /> {t.form.name.label}
+        <label htmlFor="name" className="flex items-center">
+          {renderIcon(<User className="w-4 h-4" />)} {t.form.name.label}
         </label>
         <input 
           type="text" 
@@ -357,8 +392,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
       </div>
 
       <div className="form-group">
-        <label htmlFor="phone">
-          <Phone className="w-4 h-4 mr-1" /> {t.form.phone.label}
+        <label htmlFor="phone" className="flex items-center">
+          {renderIcon(<Phone className="w-4 h-4" />)} {t.form.phone.label}
         </label>
         <input 
           type="tel" 
@@ -373,36 +408,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
         />
       </div>
 
-      <motion.button
-        type="submit"
-        className="primary-button group"
-        disabled={!formValid || isSubmitting}
-        whileHover={{ y: -2, boxShadow: '0 6px 15px rgba(0, 0, 0, 0.15)' }}
-        whileTap={{ scale: 0.98 }}
-      >
-        {isSubmitting ? (
-          <span className="flex items-center justify-center">
-            {t.form.submitting} 
-            <Loader2 className="ml-2 animate-spin w-5 h-5" />
-          </span>
-        ) : (
-          <span className="flex items-center justify-center">
-            {t.form.submit}
-            <motion.span
-              className="ml-2"
-              initial={{ x: 0 }}
-              animate={{ x: 5 }}
-              transition={{ 
-                repeat: Infinity, 
-                repeatType: "reverse", 
-                duration: 0.6 
-              }}
-            >
-              <ArrowRight className="w-5 h-5" />
-            </motion.span>
-          </span>
-        )}
-      </motion.button>
+      {renderSubmitButton()}
     </motion.form>
   );
 };

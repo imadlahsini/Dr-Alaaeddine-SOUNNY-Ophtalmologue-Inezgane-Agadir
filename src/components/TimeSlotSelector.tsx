@@ -15,13 +15,15 @@ interface TimeSlotSelectorProps {
       evening: string;
     };
   };
+  isRtl?: boolean;
 }
 
 const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({ 
   selectedDate, 
   onChange, 
   value,
-  labels
+  labels,
+  isRtl = false
 }) => {
   const [availableSlots, setAvailableSlots] = useState<string[]>([
     '8h00-11h00',
@@ -63,8 +65,11 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
 
   return (
     <div className="form-group">
-      <label htmlFor="visit-time">
-        <Clock className="w-4 h-4 mr-1" /> {labels.title}
+      <label htmlFor="visit-time" className="flex items-center">
+        <span className={`inline-flex ${isRtl ? 'ml-1' : 'mr-1'}`}>
+          <Clock className="w-4 h-4" />
+        </span>
+        {labels.title}
       </label>
       <div className="flex gap-2 pt-1">
         {availableSlots.length > 0 ? (

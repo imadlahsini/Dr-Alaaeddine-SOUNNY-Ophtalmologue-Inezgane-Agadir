@@ -16,6 +16,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
 }) => {
   const [popupVisible, setPopupVisible] = useState(initialPopupOpen);
   const [closing, setClosing] = useState(false);
+  const isRtl = currentLanguage === 'ar';
 
   useEffect(() => {
     // If initialPopupOpen is true, open the popup on component mount
@@ -47,9 +48,10 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   return (
     <>
       <button 
-        className="language-button"
+        className={`language-button ${isRtl ? 'left-4 right-auto' : 'right-4 left-auto'}`}
         onClick={() => setPopupVisible(true)}
         aria-label="Change language"
+        dir={isRtl ? 'rtl' : 'ltr'}
       >
         <img 
           src={`https://sounny.ma/icons/${currentLanguage}.webp`} 
@@ -80,9 +82,10 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            dir={isRtl ? 'rtl' : 'ltr'}
           >
             <button 
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+              className={`absolute top-4 ${isRtl ? 'left-4' : 'right-4'} text-gray-500 hover:text-gray-700`}
               onClick={handleClose}
               aria-label="Close language selection"
             >

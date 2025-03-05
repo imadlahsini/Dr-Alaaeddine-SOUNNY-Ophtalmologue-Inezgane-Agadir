@@ -15,7 +15,7 @@ const Index = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-background flex flex-col items-center justify-center p-4 sm:p-6 ${language === 'ar' ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen bg-background flex flex-col items-center justify-center p-4 sm:p-6 ${language === 'ar' ? 'rtl' : 'ltr'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Language selection button */}
       <LanguageSwitcher 
         currentLanguage={language} 
