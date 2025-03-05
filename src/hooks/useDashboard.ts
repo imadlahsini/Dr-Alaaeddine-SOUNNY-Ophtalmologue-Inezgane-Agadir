@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
@@ -193,6 +194,9 @@ export const useDashboard = () => {
       
       setIsUpdating(prev => ({ ...prev, [id]: true }));
       
+      console.log(`Updating reservation ${id} status to ${status}`);
+      
+      // Optimistically update the UI first
       setState(prev => {
         const updatedReservations = prev.reservations.map(reservation => 
           reservation.id === id ? { ...reservation, status } : reservation
@@ -211,18 +215,24 @@ export const useDashboard = () => {
         };
       });
       
+      // Then update in Supabase
       const { error } = await supabase
         .from('reservations')
         .update({ status })
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error updating status:', error);
+        throw error;
+      }
       
+      console.log(`Successfully updated reservation ${id} status to ${status}`);
       toast.success(`Reservation status updated to ${status}`);
     } catch (error) {
       console.error('Error updating reservation status:', error);
       toast.error('Failed to update reservation status');
       
+      // Revert the optimistic update and refresh data from server
       fetchReservations();
     } finally {
       setIsUpdating(prev => ({ ...prev, [id]: false }));

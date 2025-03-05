@@ -39,8 +39,11 @@ serve(async (req) => {
         createdAt: record.created_at
       };
 
-      // Send the data to the external webhook
+      // Get webhook URL from environment variable, with fallback
       const webhookUrl = Deno.env.get('WEBHOOK_URL') ?? "https://winu.app.n8n.cloud/webhook/8feeb3e5-0491-4c35-99ce-d3527c13cd59";
+      
+      console.log(`Sending booking data to webhook: ${webhookUrl}`);
+      
       const webhookResponse = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
