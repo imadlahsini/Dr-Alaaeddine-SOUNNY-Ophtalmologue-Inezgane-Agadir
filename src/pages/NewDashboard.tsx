@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -37,7 +38,7 @@ const NewDashboard: React.FC = () => {
 
   // Handle status update
   const handleStatusUpdate = (updatedReservation: Reservation) => {
-    // Fix: Return a new Set instead of just performing actions in the function
+    // Return a new Set instead of just performing actions in the function
     setUpdatingReservations(prev => {
       const newSet = new Set(prev);
       newSet.add(updatedReservation.id);

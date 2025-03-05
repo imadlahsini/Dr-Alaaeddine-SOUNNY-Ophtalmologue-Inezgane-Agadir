@@ -2,7 +2,9 @@
 import React, { useState } from 'react';
 import { Phone, Calendar, Clock } from 'lucide-react';
 import { Reservation, ReservationStatus } from '../../types/reservation';
-import StatusUpdateModal from './StatusUpdateModal';
+import { Button } from '../ui/button';
+import { supabase } from '../../integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface ReservationCardProps {
   reservation: Reservation;
@@ -23,27 +25,52 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
     setLocalReservation(reservation);
   }, [reservation]);
 
-  const getStatusColor = (status: ReservationStatus) => {
-    switch(status) {
-      case 'Confirmed': return 'bg-green-100 text-green-800';
-      case 'Canceled': return 'bg-red-100 text-red-800';
-      case 'Not Responding': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-yellow-100 text-yellow-800';
+  const updateStatus = async (newStatus: ReservationStatus) => {
+    if (newStatus === localReservation.status || isUpdating) {
+      return;
     }
-  };
 
-  const handleStatusUpdate = (updatedReservation: Reservation) => {
-    // Update local state immediately for instant UI feedback
-    setLocalReservation(updatedReservation);
     setIsUpdating(true);
     
-    // Propagate update to parent component
-    if (onStatusUpdate) {
-      onStatusUpdate(updatedReservation);
-    }
+    // Create updated reservation object for immediate UI feedback
+    const updatedReservation: Reservation = {
+      ...localReservation,
+      status: newStatus
+    };
     
-    // Reset updating state after a short delay to show loading state
-    setTimeout(() => setIsUpdating(false), 300);
+    // Update local state for immediate UI update
+    setLocalReservation(updatedReservation);
+    
+    try {
+      // Update in Supabase - this will trigger the realtime subscription
+      const { error } = await supabase
+        .from('reservations')
+        .update({ 
+          status: newStatus,
+          // Set manual_update to true to indicate this was done by an admin
+          manual_update: true 
+        })
+        .eq('id', localReservation.id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Call the callback to update parent state
+      if (onStatusUpdate) {
+        onStatusUpdate(updatedReservation);
+      }
+      
+      toast.success(`Status updated to ${newStatus}`);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Failed to update status');
+      
+      // Revert UI to original status if there was an error
+      setLocalReservation(reservation);
+    } finally {
+      setTimeout(() => setIsUpdating(false), 300);
+    }
   };
 
   // Use the local state for rendering
@@ -53,9 +80,6 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
     <div className={`border rounded-lg p-3 shadow-sm ${isUpdating ? 'opacity-80' : ''} transition-opacity`}>
       <div className="flex justify-between items-start">
         <h3 className="font-medium">{displayReservation.name}</h3>
-        <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(displayReservation.status)}`}>
-          {displayReservation.status}
-        </span>
       </div>
       
       <div className="mt-2 space-y-1 text-sm text-gray-600">
@@ -73,10 +97,32 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
         </div>
       </div>
 
-      <StatusUpdateModal 
-        reservation={displayReservation}
-        onStatusUpdate={handleStatusUpdate}
-      />
+      <div className="flex gap-2 mt-3">
+        <Button 
+          size="sm"
+          className={`flex-1 ${displayReservation.status === 'Confirmed' ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+          onClick={() => updateStatus('Confirmed')}
+          disabled={isUpdating}
+        >
+          Confirmed
+        </Button>
+        <Button 
+          size="sm"
+          className={`flex-1 ${displayReservation.status === 'Not Responding' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+          onClick={() => updateStatus('Not Responding')}
+          disabled={isUpdating}
+        >
+          Not Responding
+        </Button>
+        <Button 
+          size="sm"
+          className={`flex-1 ${displayReservation.status === 'Canceled' ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+          onClick={() => updateStatus('Canceled')}
+          disabled={isUpdating}
+        >
+          Canceled
+        </Button>
+      </div>
     </div>
   );
 };
