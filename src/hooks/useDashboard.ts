@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
@@ -214,20 +215,36 @@ export const useDashboard = () => {
         };
       });
       
-      // Enhanced error logging for API call
-      console.log(`[STATUS UPDATE] Making Supabase API call to update reservation ${id} to status ${status}`);
+      // Use a more robust approach to update status
+      // First, fetch the current reservation to get the latest state
+      const { data: currentData, error: currentError } = await supabase
+        .from('reservations')
+        .select('*')
+        .eq('id', id)
+        .single();
       
-      // Use a simpler update with better error handling
-      const { data, error } = await supabase
+      if (currentError) {
+        console.error(`[STATUS UPDATE] Error fetching current reservation:`, currentError);
+        throw new Error(`Failed to fetch current reservation: ${currentError.message}`);
+      }
+      
+      console.log(`[STATUS UPDATE] Current reservation data:`, currentData);
+      console.log(`[STATUS UPDATE] Current status: ${currentData.status}, New status: ${status}`);
+      
+      // Now perform the update with a simpler query and no select to avoid any conflicts
+      const { error: updateError } = await supabase
         .from('reservations')
         .update({ status })
         .eq('id', id);
       
-      if (error) {
-        console.error(`[STATUS UPDATE] Supabase update error:`, error);
-        throw new Error(`Supabase error: ${error.message}`);
+      if (updateError) {
+        console.error(`[STATUS UPDATE] Supabase update error:`, updateError);
+        throw new Error(`Supabase error: ${updateError.message}`);
       }
-
+      
+      // Wait a brief moment to ensure the database has processed the update
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       // Verify update succeeded with a separate fetch
       console.log(`[STATUS UPDATE] Verifying update succeeded for reservation ${id}`);
       const { data: verifyData, error: verifyError } = await supabase
@@ -248,11 +265,16 @@ export const useDashboard = () => {
       
       if (verifyData.status !== status) {
         console.error(`[STATUS UPDATE] Status mismatch after update! Expected: ${status}, Got: ${verifyData.status}`);
+        // This is the critical error we're fixing
         throw new Error(`Status update failed. Expected: ${status}, Got: ${verifyData.status}`);
       }
       
       console.log(`[STATUS UPDATE] Successfully verified status change for ${id} to ${status}`);
       toast.success(`Reservation status updated to ${status}`);
+      
+      // Refresh data from the server to ensure consistency across all clients
+      await fetchReservations();
+      
     } catch (error) {
       console.error('[STATUS UPDATE] Error updating reservation status:', error);
       

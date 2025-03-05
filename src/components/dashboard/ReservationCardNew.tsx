@@ -2,6 +2,7 @@
 import React from 'react';
 import { Calendar, Clock, User, Phone, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { Reservation, ReservationStatus } from '../../hooks/useDashboard';
+import { toast } from 'sonner';
 
 interface ReservationCardProps {
   reservation: Reservation;
@@ -52,10 +53,13 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
   const handleStatusChange = (status: ReservationStatus) => {
     if (reservation.status !== status) {
       console.log(`Card requesting status change for ${reservation.id} from ${reservation.status} to ${status}`);
+      toast.info(`Updating status to ${status}...`, { duration: 2000 });
+      
       try {
         onStatusChange(reservation.id, status);
       } catch (error) {
         console.error(`Error during status change for ${reservation.id}:`, error);
+        toast.error(`Failed to update status: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
   };
