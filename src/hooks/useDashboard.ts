@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
@@ -14,6 +15,7 @@ export const useDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   
   /**
    * Fetch reservations from Supabase and apply filters
@@ -31,10 +33,16 @@ export const useDashboard = () => {
         .order('created_at', { ascending: false });
       
       if (error) {
-        throw error;
+        console.error('Supabase error:', error);
+        throw new Error(`Failed to fetch reservations: ${error.message}`);
       }
       
       console.log('Raw reservation data from Supabase:', data);
+      
+      if (!data || !Array.isArray(data)) {
+        console.error('Invalid data format:', data);
+        throw new Error('Received invalid data format from server');
+      }
       
       const processedReservations: Reservation[] = data.map(item => ({
         id: item.id,
@@ -50,13 +58,29 @@ export const useDashboard = () => {
       applyFilters(processedReservations, searchQuery);
       setIsLoading(false);
       setLastRefreshed(new Date());
+      
+      // Reset retry count on successful fetch
+      if (retryCount > 0) {
+        setRetryCount(0);
+      }
     } catch (error) {
       console.error('Error fetching reservations:', error);
-      setError('Failed to load reservations');
+      setError(error instanceof Error ? error.message : 'Failed to load reservations');
       setIsLoading(false);
-      toast.error('Failed to load reservations');
+      toast.error('Failed to load reservations. Will retry automatically.');
+      
+      // Schedule a retry if error occurs
+      if (retryCount < 3) {
+        const timeout = setTimeout(() => {
+          console.log(`Retrying fetch (attempt ${retryCount + 1})...`);
+          setRetryCount(prev => prev + 1);
+          fetchReservations();
+        }, 3000 * (retryCount + 1));
+        
+        return () => clearTimeout(timeout);
+      }
     }
-  }, [searchQuery]);
+  }, [searchQuery, retryCount]);
   
   // Apply filters based on search query
   const applyFilters = (reservationList: Reservation[], query: string) => {
@@ -139,7 +163,19 @@ export const useDashboard = () => {
   
   // Fetch reservations on initial load
   useEffect(() => {
-    fetchReservations();
+    const fetchInitialData = async () => {
+      await fetchReservations();
+    };
+    
+    fetchInitialData();
+    
+    // Set up periodic refresh every 2 minutes as a backup in case realtime fails
+    const intervalId = setInterval(() => {
+      console.log('Performing periodic data refresh...');
+      fetchReservations();
+    }, 120000);
+    
+    return () => clearInterval(intervalId);
   }, [fetchReservations]);
   
   /**

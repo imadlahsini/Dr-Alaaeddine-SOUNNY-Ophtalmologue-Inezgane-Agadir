@@ -1,6 +1,6 @@
 
 import { useEffect, useRef } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Index from './pages/Index';
 import ThankYou from './pages/ThankYou';
 import Admin from './pages/Admin';
@@ -79,7 +79,8 @@ function App() {
         <Route path="/thank-you" element={<ThankYou />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/dashboard" element={<NewDashboard />} />
-        <Route path="*" element={<NotFound />} />
+        <Route path="/404" element={<NotFound />} />
+        <Route path="*" element={<Navigate to="/404" replace />} />
       </Routes>
       <Toaster position="top-center" richColors />
     </Router>

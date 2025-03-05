@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getSession } from '../utils/api';
 import { isAuthenticated, setAuthState, clearAuthState } from '../utils/authUtils';
+import { supabase } from '../integrations/supabase/client';
 
 export const useAuthentication = () => {
   const navigate = useNavigate();
@@ -26,8 +27,8 @@ export const useAuthentication = () => {
           console.log('Not authenticated based on local check');
           if (isMounted) {
             clearAuthState();
-            toast.error('Session expired. Please login again.');
-            navigate('/admin');
+            setIsChecking(false);
+            return;
           }
           return;
         }
@@ -41,8 +42,11 @@ export const useAuthentication = () => {
           console.error('Session error:', error);
           if (isMounted) {
             clearAuthState();
-            toast.error('Authentication error. Please login again.');
-            navigate('/admin');
+            setIsChecking(false);
+            if (window.location.pathname.includes('/dashboard')) {
+              toast.error('Authentication error. Please login again.');
+              navigate('/admin');
+            }
           }
           return;
         }
@@ -51,8 +55,11 @@ export const useAuthentication = () => {
           console.log('No active session found');
           if (isMounted) {
             clearAuthState();
-            toast.error('Session expired. Please login again.');
-            navigate('/admin');
+            setIsChecking(false);
+            if (window.location.pathname.includes('/dashboard')) {
+              toast.error('Session expired. Please login again.');
+              navigate('/admin');
+            }
           }
           return;
         }
@@ -70,11 +77,34 @@ export const useAuthentication = () => {
         console.error('Uncaught auth check error:', err);
         if (isMounted) {
           clearAuthState();
-          toast.error('Authentication error. Please login again.');
-          navigate('/admin');
+          setIsChecking(false);
+          if (window.location.pathname.includes('/dashboard')) {
+            toast.error('Authentication error. Please login again.');
+            navigate('/admin');
+          }
         }
       }
     };
+
+    // Set up auth state listener
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session ? 'session exists' : 'no session');
+      
+      if (event === 'SIGNED_IN' && session) {
+        setAuthState();
+        setIsAuth(true);
+        setIsChecking(false);
+      } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        clearAuthState();
+        setIsAuth(false);
+        setIsChecking(false);
+        if (window.location.pathname.includes('/dashboard')) {
+          navigate('/admin');
+        }
+      }
+    });
 
     // Start the check after a brief delay to ensure component is mounted
     const timeoutId = setTimeout(() => {
@@ -84,6 +114,7 @@ export const useAuthentication = () => {
     return () => {
       isMounted = false;
       clearTimeout(timeoutId);
+      subscription.unsubscribe();
       console.log("Authentication hook cleanup");
     };
   }, [navigate]);
