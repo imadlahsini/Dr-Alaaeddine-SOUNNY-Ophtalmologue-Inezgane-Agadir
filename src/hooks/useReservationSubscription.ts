@@ -36,17 +36,39 @@ export const useReservationSubscription = ({
         });
         
         if (error) {
+          // Check if the error is just that the table is already in the publication
+          // This is not a real error, just informational
+          if (error.message?.includes('already member of publication')) {
+            console.log('Reservations table is already enabled for realtime updates');
+            return true; // Return success even though there was an "error"
+          }
+          
           console.error('Failed to enable realtime for reservations table:', error);
+          return false;
         } else {
           console.log('Successfully enabled realtime for reservations table');
+          return true;
         }
       } catch (error) {
         console.error('Error calling enable_realtime_for_table function:', error);
+        return false;
       }
     };
 
     // Try to ensure the table is set up for realtime
-    enableRealtimeForTable();
+    enableRealtimeForTable().then(success => {
+      if (success) {
+        // Only proceed with setting up the subscription if the table is properly enabled
+        // or was already enabled (which counts as success)
+        setupRealtimeSubscription();
+      } else {
+        // If we couldn't enable realtime, mark as disconnected
+        setConnectionStatus('disconnected');
+        toast.error('Failed to enable realtime updates', {
+          description: 'Status updates may not be reflected immediately. Please refresh the page.'
+        });
+      }
+    });
     
     const setupRealtimeSubscription = () => {
       // Prevent setup if we're in the process of cleaning up
@@ -174,8 +196,6 @@ export const useReservationSubscription = ({
       
       realtimeChannelRef.current = channel;
     };
-    
-    setupRealtimeSubscription();
     
     return () => {
       // Mark that we're cleaning up to prevent new subscriptions from being created
