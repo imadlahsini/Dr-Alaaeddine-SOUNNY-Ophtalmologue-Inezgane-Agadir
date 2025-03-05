@@ -1,13 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
 import { fr, ar } from 'date-fns/locale';
-import { Calendar, User, Phone, ArrowRight, Loader2, Settings } from 'lucide-react';
+import { Calendar, User, Phone, ArrowRight, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import TimeSlotSelector from './TimeSlotSelector';
-import { sendTelegramNotification } from '../utils/telegramService';
 import { sendReservationNotification } from '../utils/pushNotificationService';
 import { createReservation } from '../utils/api';
 
@@ -112,7 +110,7 @@ const translations = {
       phone: "ⵓⵟⵟⵓⵏ ⵏ ⵜⵜⵉⵍⵉⴼⵓⵏ ⵡⴰⵔ ⵉⵣⴷⵉ"
     },
     success: "ⵜⴰⵡⴰⵍⵜ ⵏⵏⴽ ⵜⵎⵙⴽⵍ ⵙ ⵜⵖⴰⵔⴰ!",
-    offlineSuccess: "ⵜⴰⵡⴰⵍⵜ ⵏⵏⴽ ⵜⵎⵙⴽⵍ ⵙ ⵓⵙⴽⴰⵔ ⴰⵎⵙⵉⴳⴳⵯⵍ. ⵔⴰⴷ ⴽⵉⴷⴽ ⵏⵎⵢⴰⵡⴰⴹ ⴷⵖⵢⴰ."
+    offlineSuccess: "ⵜⴰⵡⴰⵍⵜ ⵏⵏⴽ ⵜⵎⵙⴽⵍ ⵙ ⵓⵙⴽⴰⵔ ⴰⵎⵙⵉⴳⴳⵯⵍ. ⵔⴰⴷ ⴽⵉⴷⴽ ⵏⵎⵢⴰ��ⴰⴹ ⴷⵖⵢⴰ."
   }
 };
 
@@ -139,8 +137,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
     const options = [];
     const today = new Date();
     
-    // Start from tomorrow (i=1) instead of today (i=0)
-    // Show 7 days instead of 5
     for (let i = 1; i < 8; i++) {
       const date = addDays(today, i);
       const dayOfWeek = date.getDay();
@@ -202,50 +198,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
       });
       
       if (result.success) {
-        let telegramSuccess = false;
-        
-        try {
-          console.log('Attempting to send Telegram notification...');
-          console.log('Notification data:', JSON.stringify({
-            name: formData.name,
-            phone: formData.phone,
-            date: formData.date,
-            timeSlot: formData.timeSlot
-          }));
-          
-          const telegramResult = await sendTelegramNotification({
-            name: formData.name,
-            phone: formData.phone,
-            date: formData.date,
-            timeSlot: formData.timeSlot
-          });
-          
-          console.log('Telegram notification result:', telegramResult);
-          telegramSuccess = telegramResult.success;
-          
-          if (!telegramResult.success) {
-            if (telegramResult.needsConfiguration) {
-              const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-              if (isAuthenticated) {
-                toast(
-                  'Telegram notifications not configured',
-                  {
-                    description: 'Go to Telegram Config to set up notifications',
-                    action: {
-                      label: 'Configure',
-                      onClick: () => navigate('/telegram-config')
-                    }
-                  }
-                );
-              }
-            } else {
-              console.warn('Telegram notification failed:', telegramResult.message);
-            }
-          }
-        } catch (telegramError) {
-          console.warn('Telegram notification failed, but reservation was saved:', telegramError);
-        }
-        
         try {
           console.log('Attempting to send push notification for admins...');
           const notificationSent = sendReservationNotification({
@@ -260,13 +212,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
         }
         
         toast.success(t.success);
-        
-        const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-        if (isAuthenticated && !telegramSuccess) {
-          toast.info('Reservation saved, but Telegram notification failed', {
-            description: 'Check Telegram configuration in settings'
-          });
-        }
         
         setTimeout(() => {
           navigate('/thank-you', { 
