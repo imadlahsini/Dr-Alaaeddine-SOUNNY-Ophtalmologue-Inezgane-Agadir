@@ -3,7 +3,9 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import ReservationForm from '../components/ReservationForm';
 import LanguageSwitcher from '../components/LanguageSwitcher';
-import logoImage from '../assets/images/logo.webp';
+
+// Use public URL instead of direct import
+const logoImage = '/images/logo.webp';
 
 const Index = () => {
   const [language, setLanguage] = useState<'fr' | 'ar' | 'tm'>('fr');

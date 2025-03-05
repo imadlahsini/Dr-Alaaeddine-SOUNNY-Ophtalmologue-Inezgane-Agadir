@@ -3,10 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
-// Import language flag images
-import frFlag from '../assets/images/fr.webp';
-import arFlag from '../assets/images/ar.webp';
-import tmFlag from '../assets/images/tm.webp';
+// Use public URLs instead of direct imports
+const frFlag = '/images/fr.webp';
+const arFlag = '/images/ar.webp';
+const tmFlag = '/images/tm.webp';
 
 interface LanguageSwitcherProps {
   currentLanguage: 'fr' | 'ar' | 'tm';
