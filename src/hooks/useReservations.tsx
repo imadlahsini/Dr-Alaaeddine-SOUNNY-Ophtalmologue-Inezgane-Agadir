@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { fetchReservations, updateReservation, Reservation } from '../utils/api';
+import { fetchReservations, Reservation } from '../utils/api';
 
 export const useReservations = () => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -158,127 +158,6 @@ export const useReservations = () => {
     };
   }, [fetchData]); // Only include fetchData in dependencies
 
-  const handleStatusChange = async (id: string, status: Reservation['status']) => {
-    // Prevent duplicate requests
-    if (updatingReservationsRef.current.has(id)) {
-      console.log(`Already updating reservation ${id}, ignoring duplicate request`);
-      return;
-    }
-    
-    console.log(`Starting status update for reservation ${id} to ${status}`);
-    updatingReservationsRef.current.add(id);
-    
-    // Optimistically update UI state
-    setReservations(prev =>
-      prev.map(res => (res.id === id ? { ...res, status } : res))
-    );
-    
-    try {
-      console.log(`Sending API request to update reservation ${id} status to ${status}`);
-      const result = await updateReservation(id, { status });
-      
-      if (result.success) {
-        console.log(`Reservation ${id} status successfully updated on server`);
-        toast.success('Reservation status updated successfully');
-        
-        // No need to update local state again since we did it optimistically
-      } else {
-        console.error(`Failed to update reservation ${id} status:`, result.message);
-        toast.error(result.message || 'Failed to update reservation status');
-        
-        // Revert the optimistic update
-        setReservations(prev =>
-          prev.map(res => {
-            if (res.id === id) {
-              // Try to find the original state
-              const originalRes = reservations.find(r => r.id === id);
-              return originalRes || res; // Fallback to current if original not found
-            }
-            return res;
-          })
-        );
-      }
-    } catch (err) {
-      console.error('Error updating status:', err);
-      toast.error('Network error. Please try again.');
-      
-      // Revert the optimistic update
-      setReservations(prev =>
-        prev.map(res => {
-          if (res.id === id) {
-            // Try to find the original state
-            const originalRes = reservations.find(r => r.id === id);
-            return originalRes || res; // Fallback to current if original not found
-          }
-          return res;
-        })
-      );
-    } finally {
-      console.log(`Completed update process for reservation ${id}`);
-      updatingReservationsRef.current.delete(id);
-    }
-  };
-
-  const handleUpdate = async (id: string, updatedData: Partial<Reservation>) => {
-    if (updatingReservationsRef.current.has(id)) {
-      console.log(`Already updating reservation ${id}, ignoring duplicate request`);
-      return;
-    }
-    
-    console.log(`Starting update for reservation ${id} with data:`, updatedData);
-    updatingReservationsRef.current.add(id);
-    
-    // Optimistically update UI state
-    setReservations(prev =>
-      prev.map(res => (res.id === id ? { ...res, ...updatedData } : res))
-    );
-    
-    try {
-      console.log(`Sending API request to update reservation ${id}`);
-      const result = await updateReservation(id, updatedData);
-      
-      if (result.success) {
-        console.log(`Reservation ${id} successfully updated on server`);
-        toast.success('Reservation updated successfully');
-        
-        // No need to update local state again since we did it optimistically
-      } else {
-        console.error(`Failed to update reservation ${id}:`, result.message);
-        toast.error(result.message || 'Failed to update reservation');
-        
-        // Revert the optimistic update
-        setReservations(prev =>
-          prev.map(res => {
-            if (res.id === id) {
-              // Try to find the original state
-              const originalRes = reservations.find(r => r.id === id);
-              return originalRes || res; // Fallback to current if original not found
-            }
-            return res;
-          })
-        );
-      }
-    } catch (err) {
-      console.error('Error updating reservation:', err);
-      toast.error('Network error. Please try again.');
-      
-      // Revert the optimistic update
-      setReservations(prev =>
-        prev.map(res => {
-          if (res.id === id) {
-            // Try to find the original state
-            const originalRes = reservations.find(r => r.id === id);
-            return originalRes || res; // Fallback to current if original not found
-          }
-          return res;
-        })
-      );
-    } finally {
-      console.log(`Completed update process for reservation ${id}`);
-      updatingReservationsRef.current.delete(id);
-    }
-  };
-
   const handleNewReservation = useCallback((newReservation: Reservation) => {
     console.log('Received new reservation via realtime:', newReservation);
     
@@ -379,8 +258,14 @@ export const useReservations = () => {
     error,
     fetchData,
     refreshData,
-    handleStatusChange,
-    handleUpdate,
+    handleStatusChange: () => {
+      console.log('Status change functionality has been removed');
+      toast.error('Status change functionality has been removed');
+    },
+    handleUpdate: () => {
+      console.log('Update functionality has been removed');
+      toast.error('Update functionality has been removed');
+    },
     handleNewReservation,
     handleReservationUpdate,
     handleReservationDelete,

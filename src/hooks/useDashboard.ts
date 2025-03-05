@@ -20,7 +20,6 @@ export const useDashboard = () => {
     stats: { total: 0, confirmed: 0, pending: 0, canceled: 0, notResponding: 0 },
     searchQuery: '',
     statusFilter: 'All',
-    dateFilter: null,
     isLoading: true,
     error: null,
     lastRefreshed: null
@@ -64,8 +63,7 @@ export const useDashboard = () => {
       const filtered = applyFilters(
         reservations, 
         state.searchQuery, 
-        state.statusFilter, 
-        null
+        state.statusFilter
       );
       
       setState(prev => ({
@@ -99,8 +97,7 @@ export const useDashboard = () => {
           filteredReservations: applyFilters(
             updatedReservations,
             prev.searchQuery,
-            prev.statusFilter,
-            null
+            prev.statusFilter
           ),
           stats: calculateStats(updatedReservations)
         };
@@ -118,8 +115,7 @@ export const useDashboard = () => {
           filteredReservations: applyFilters(
             updatedReservations,
             prev.searchQuery,
-            prev.statusFilter,
-            null
+            prev.statusFilter
           ),
           stats: calculateStats(updatedReservations)
         };
@@ -137,8 +133,7 @@ export const useDashboard = () => {
           filteredReservations: applyFilters(
             updatedReservations,
             prev.searchQuery,
-            prev.statusFilter,
-            null
+            prev.statusFilter
           ),
           stats: calculateStats(updatedReservations)
         };
@@ -159,8 +154,7 @@ export const useDashboard = () => {
       const filtered = applyFilters(
         prev.reservations,
         query,
-        prev.statusFilter,
-        null
+        prev.statusFilter
       );
       
       return {
@@ -179,8 +173,7 @@ export const useDashboard = () => {
       const filtered = applyFilters(
         prev.reservations,
         prev.searchQuery,
-        status,
-        null
+        status
       );
       
       return {
