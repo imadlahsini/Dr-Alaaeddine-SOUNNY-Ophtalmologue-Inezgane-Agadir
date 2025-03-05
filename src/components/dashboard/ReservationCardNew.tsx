@@ -15,9 +15,9 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
   onStatusChange,
   compact = false
 }) => {
-  const handleStatusChange = async (newStatus: ReservationStatus) => {
+  const handleStatusChange = (newStatus: ReservationStatus) => {
     if (reservation.status === newStatus) return;
-
+    
     try {
       toast.info(`Updating to ${newStatus}...`);
       onStatusChange(reservation.id, newStatus);

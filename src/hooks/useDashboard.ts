@@ -30,8 +30,7 @@ export const useDashboard = () => {
   // Get status update functionality
   const { 
     updateReservationStatus: updateStatus, 
-    isUpdating, 
-    localStatusUpdates 
+    isUpdating
   } = useReservationStatusUpdate();
   
   /**
@@ -54,21 +53,15 @@ export const useDashboard = () => {
       
       console.log('Raw reservation data from Supabase:', data);
       
-      const reservations: Reservation[] = data.map(item => {
-        const id = item.id;
-        const localStatus = localStatusUpdates[id];
-        const finalStatus = localStatus || item.status as ReservationStatus;
-        
-        return {
-          id,
-          name: item.name,
-          phone: item.phone,
-          date: item.date,
-          timeSlot: item.time_slot,
-          status: finalStatus,
-          createdAt: item.created_at
-        };
-      });
+      const reservations: Reservation[] = data.map(item => ({
+        id: item.id,
+        name: item.name,
+        phone: item.phone,
+        date: item.date,
+        timeSlot: item.time_slot,
+        status: item.status as ReservationStatus,
+        createdAt: item.created_at
+      }));
       
       console.log('Processed reservations with statuses:', 
         reservations.map(r => ({ id: r.id, name: r.name, status: r.status })));
@@ -99,7 +92,7 @@ export const useDashboard = () => {
       }));
       toast.error('Failed to load reservations');
     }
-  }, [state.searchQuery, state.statusFilter, state.dateFilter, localStatusUpdates]);
+  }, [state.searchQuery, state.statusFilter, state.dateFilter]);
   
   // Set up the realtime subscription
   useReservationSubscription({
@@ -158,8 +151,7 @@ export const useDashboard = () => {
         };
       });
     },
-    isUpdating,
-    localStatusUpdates
+    isUpdating
   });
   
   // Fetch reservations on initial load
@@ -231,7 +223,7 @@ export const useDashboard = () => {
    * Update reservation status and handle UI updates
    */
   const updateReservationStatus = async (id: string, status: ReservationStatus) => {
-    // First update local UI for immediate feedback
+    // Update local UI for immediate feedback
     setState(prev => {
       const updatedReservations = prev.reservations.map(reservation => 
         reservation.id === id ? { ...reservation, status } : reservation
@@ -252,7 +244,7 @@ export const useDashboard = () => {
       };
     });
     
-    // Then send update to database
+    // Send update to database
     await updateStatus(id, status, () => {
       // This is called on successful update
       // We've already updated the UI, so nothing more to do here
