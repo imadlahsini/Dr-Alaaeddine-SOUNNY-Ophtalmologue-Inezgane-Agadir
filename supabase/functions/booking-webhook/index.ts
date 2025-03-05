@@ -34,16 +34,20 @@ serve(async (req) => {
       if (record.manual_update === true) {
         console.log(`Manual update detected for ID ${record.id} (${body.old.status} -> ${record.status}). Processing...`);
         
-        // Clear the manual_update flag but don't interfere with the status
-        await supabaseAdmin
+        // Clear the manual_update flag but don't change the status that was manually set
+        const { error } = await supabaseAdmin
           .from('reservations')
           .update({ manual_update: null })
           .eq('id', record.id);
+          
+        if (error) {
+          console.error(`Error clearing manual_update flag: ${error.message}`);
+          throw error;
+        }
         
-        console.log(`Cleared manual_update flag for ID: ${record.id}`);
+        console.log(`Cleared manual_update flag for ID: ${record.id}, preserving status: ${record.status}`);
         
         // Skip webhook processing for manual updates
-        // This is crucial - we don't want to send webhook notification for changes made in the dashboard
         const webhookResponse = {
           success: true,
           message: 'Manual update processed, webhook notification skipped'
@@ -56,7 +60,6 @@ serve(async (req) => {
       }
       
       // Handle external automatic updates (not from dashboard)
-      // We still want to detect purely automatic updates and ignore them
       const isStatusOnlyChange = 
         body.old.name === record.name && 
         body.old.phone === record.phone && 
@@ -69,7 +72,6 @@ serve(async (req) => {
         console.log(`Possible automatic status change detected (${body.old.status} -> ${record.status}). Validating...`);
         
         // IMPORTANT: Check if this update came from an external system
-        // For now, we'll log but proceed with the update
         console.log(`Processing external status update for ID: ${record.id}`);
       }
     }

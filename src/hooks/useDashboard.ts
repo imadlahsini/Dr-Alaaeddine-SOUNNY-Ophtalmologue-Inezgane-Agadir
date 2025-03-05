@@ -49,6 +49,7 @@ export const useDashboard = () => {
   
   const [isUpdating, setIsUpdating] = useState<Record<string, boolean>>({});
   const realtimeChannelRef = useRef<any>(null);
+  const localStatusUpdatesRef = useRef<Record<string, ReservationStatus>>({});
   
   const fetchReservations = useCallback(async () => {
     try {
@@ -67,15 +68,21 @@ export const useDashboard = () => {
       
       console.log('Raw reservation data from Supabase:', data);
       
-      const reservations: Reservation[] = data.map(item => ({
-        id: item.id,
-        name: item.name,
-        phone: item.phone,
-        date: item.date,
-        timeSlot: item.time_slot,
-        status: item.status as ReservationStatus,
-        createdAt: item.created_at
-      }));
+      const reservations: Reservation[] = data.map(item => {
+        const id = item.id;
+        const localStatus = localStatusUpdatesRef.current[id];
+        const finalStatus = localStatus || item.status as ReservationStatus;
+        
+        return {
+          id,
+          name: item.name,
+          phone: item.phone,
+          date: item.date,
+          timeSlot: item.time_slot,
+          status: finalStatus,
+          createdAt: item.created_at
+        };
+      });
       
       console.log('Processed reservations with statuses:', 
         reservations.map(r => ({ id: r.id, name: r.name, status: r.status })));
@@ -97,6 +104,8 @@ export const useDashboard = () => {
         isLoading: false,
         lastRefreshed: new Date()
       }));
+      
+      localStatusUpdatesRef.current = {};
     } catch (error) {
       console.error('Error fetching reservations:', error);
       setState(prev => ({
@@ -224,26 +233,41 @@ export const useDashboard = () => {
         };
       });
       
+      localStatusUpdatesRef.current[id] = status;
+      
+      const { error } = await supabase
+        .from('reservations')
+        .update({
+          status,
+          manual_update: true
+        })
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error updating status in Supabase:', error);
+        toast.error('Failed to update status, please try again');
+        throw error;
+      }
+      
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       const { data, error: checkError } = await supabase
         .from('reservations')
-        .select('status')
+        .select('status, manual_update')
         .eq('id', id)
         .single();
       
       if (checkError) {
         console.warn('Error verifying status update:', checkError);
-        fetchReservations();
       } else if (data.status !== status) {
         console.warn(`Status verification failed: Database has ${data.status}, but UI expected ${status}`);
-        fetchReservations();
+        console.log(`Keeping local status update for ${id} as ${status} despite database having ${data.status}`);
       } else {
         console.log(`Verified: Database status for ${id} is ${data.status} as expected`);
+        delete localStatusUpdatesRef.current[id];
       }
     } catch (error) {
       console.error('Error handling status update in useDashboard:', error);
-      fetchReservations();
     } finally {
       setIsUpdating(prev => ({ ...prev, [id]: false }));
     }
@@ -307,6 +331,11 @@ export const useDashboard = () => {
           
           if (isUpdating[payload.new.id]) {
             console.log(`Ignoring external update for ${payload.new.id} as it was triggered locally`);
+            return;
+          }
+          
+          if (localStatusUpdatesRef.current[payload.new.id]) {
+            console.log(`Preserving local status update for ${payload.new.id} over external update`);
             return;
           }
           

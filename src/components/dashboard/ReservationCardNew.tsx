@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Calendar, Clock, Phone, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { Reservation, ReservationStatus } from '../../hooks/useDashboard';
@@ -57,28 +58,11 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
       // Show toast for immediate feedback
       toast.info(`Updating to ${newStatus}...`);
       
-      // IMPORTANT: Set manual_update to TRUE to explicitly mark this as a UI-triggered update
-      const { error } = await supabase
-        .from('reservations')
-        .update({ 
-          status: newStatus,
-          manual_update: true // This flag tells the webhook this is a manual update
-        })
-        .eq('id', reservation.id);
-      
-      if (error) {
-        console.error('Error updating status in database:', error);
-        throw new Error(`Database error: ${error.message}`);
-      }
-      
-      console.log(`Successfully updated reservation ${reservation.id} status to ${newStatus} in the database`);
-      
-      // Update UI state after successful database update
+      // Let the dashboard hook handle the actual status update
+      // This avoids a race condition between local state and database updates
       onStatusChange(reservation.id, newStatus);
-      
-      toast.success(`Status updated to ${newStatus}`);
     } catch (error) {
-      console.error('Error updating status:', error);
+      console.error('Error in handleStatusChange:', error);
       toast.error(`Failed to update status: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
