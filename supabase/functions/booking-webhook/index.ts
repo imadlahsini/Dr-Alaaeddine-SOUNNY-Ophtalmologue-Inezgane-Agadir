@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    // Create a Supabase client with the service role key (needed for database triggers)
+    // Create a Supabase client with the service role key
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -26,21 +26,11 @@ serve(async (req) => {
 
     console.log(`Webhook received ${type} event for record:`, record);
 
-    // IMPORTANT: For status updates, we need to ensure we don't override the current status
-    // with an older value. This was causing the issue where status updates weren't persisting.
-    if (type === 'UPDATE' && body.old) {
-      // We only want to process status changes initiated by our app
-      // Check if this update was specifically to change the status
-      const isStatusUpdate = body.old.status !== record.status;
-      
-      if (isStatusUpdate) {
-        console.log(`Status update detected: ${body.old.status} -> ${record.status}`);
-        
-        // Don't modify the status in the webhook process
-        // Just forward the current status value to ensure it's preserved
-      } else {
-        console.log('Non-status update detected, preserving current status value');
-      }
+    // Skip processing status changes in the webhook to avoid conflicts
+    // The admin UI should be the source of truth for status changes
+    if (type === 'UPDATE' && body.old && body.old.status !== record.status) {
+      console.log(`Status change detected (${body.old.status} -> ${record.status}). Webhook will not modify status.`);
+      // Just log the status change and continue without additional processing
     }
       
     // Format the data to send to the webhook
@@ -50,7 +40,7 @@ serve(async (req) => {
       phone: record.phone,
       date: record.date,
       timeSlot: record.time_slot,
-      status: record.status, // Use the current status from the record
+      status: record.status,
       createdAt: record.created_at,
       eventType: type
     };
@@ -75,11 +65,6 @@ serve(async (req) => {
 
     console.log('Successfully sent booking to webhook:', await webhookResponse.text());
     return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
-
-    return new Response(JSON.stringify({ success: true, message: 'Nothing to process' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
@@ -194,9 +193,8 @@ export const useDashboard = () => {
       
       setIsUpdating(prev => ({ ...prev, [id]: true }));
       
-      console.log(`[STATUS UPDATE] Starting process for reservation ${id} - changing status to ${status}`);
+      console.log(`Updating reservation ${id} status to ${status}`);
       
-      // Optimistically update the UI first
       setState(prev => {
         const updatedReservations = prev.reservations.map(reservation => 
           reservation.id === id ? { ...reservation, status } : reservation
@@ -215,78 +213,26 @@ export const useDashboard = () => {
         };
       });
       
-      // Use a more robust approach to update status
-      // First, fetch the current reservation to get the latest state
-      const { data: currentData, error: currentError } = await supabase
-        .from('reservations')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (currentError) {
-        console.error(`[STATUS UPDATE] Error fetching current reservation:`, currentError);
-        throw new Error(`Failed to fetch current reservation: ${currentError.message}`);
-      }
-      
-      console.log(`[STATUS UPDATE] Current reservation data:`, currentData);
-      console.log(`[STATUS UPDATE] Current status: ${currentData.status}, New status: ${status}`);
-      
-      // Now perform the update with a simpler query and no select to avoid any conflicts
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from('reservations')
         .update({ status })
         .eq('id', id);
       
-      if (updateError) {
-        console.error(`[STATUS UPDATE] Supabase update error:`, updateError);
-        throw new Error(`Supabase error: ${updateError.message}`);
+      if (error) {
+        throw new Error(`Database error: ${error.message}`);
       }
       
-      // Wait a brief moment to ensure the database has processed the update
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Verify update succeeded with a separate fetch
-      console.log(`[STATUS UPDATE] Verifying update succeeded for reservation ${id}`);
-      const { data: verifyData, error: verifyError } = await supabase
-        .from('reservations')
-        .select('*')
-        .eq('id', id)
-        .single();
-        
-      if (verifyError) {
-        console.error(`[STATUS UPDATE] Verification query error:`, verifyError);
-        throw new Error(`Verification error: ${verifyError.message}`);
-      }
-      
-      if (!verifyData) {
-        console.error(`[STATUS UPDATE] Reservation not found during verification`);
-        throw new Error('Reservation not found during verification');
-      }
-      
-      if (verifyData.status !== status) {
-        console.error(`[STATUS UPDATE] Status mismatch after update! Expected: ${status}, Got: ${verifyData.status}`);
-        // This is the critical error we're fixing
-        throw new Error(`Status update failed. Expected: ${status}, Got: ${verifyData.status}`);
-      }
-      
-      console.log(`[STATUS UPDATE] Successfully verified status change for ${id} to ${status}`);
-      toast.success(`Reservation status updated to ${status}`);
-      
-      // Refresh data from the server to ensure consistency across all clients
-      await fetchReservations();
+      toast.success(`Status updated to ${status}`);
       
     } catch (error) {
-      console.error('[STATUS UPDATE] Error updating reservation status:', error);
+      console.error('Error updating status:', error);
       
-      // Show more detailed error message
       let errorMessage = 'Failed to update reservation status';
       if (error instanceof Error) {
         errorMessage = `${errorMessage}: ${error.message}`;
       }
       toast.error(errorMessage);
       
-      // Revert the optimistic update and refresh data from server
-      console.log('[STATUS UPDATE] Reverting optimistic update and refreshing data');
       fetchReservations();
     } finally {
       setIsUpdating(prev => ({ ...prev, [id]: false }));
