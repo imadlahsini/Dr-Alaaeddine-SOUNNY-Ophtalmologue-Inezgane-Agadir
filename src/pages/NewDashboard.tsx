@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -38,22 +37,23 @@ const NewDashboard: React.FC = () => {
 
   // Handle status update
   const handleStatusUpdate = (updatedReservation: Reservation) => {
-    // Add the reservation ID to the updating set
+    // Fix: Return a new Set instead of just performing actions in the function
     setUpdatingReservations(prev => {
       const newSet = new Set(prev);
       newSet.add(updatedReservation.id);
-      
-      // Set a timeout to remove the ID after a short delay
-      setTimeout(() => {
-        setUpdatingReservations(current => {
-          const updated = new Set(current);
-          updated.delete(updatedReservation.id);
-          return updated;
-        });
-      }, 2000); // Clear updating state after 2 seconds
-      
-      toast.success(`Updated ${updatedReservation.name}'s reservation to ${updatedReservation.status}`);
+      return newSet; // Return the new Set
     });
+    
+    // Set a timeout to remove the ID after a short delay
+    setTimeout(() => {
+      setUpdatingReservations(current => {
+        const updated = new Set(current);
+        updated.delete(updatedReservation.id);
+        return updated;
+      });
+    }, 2000); // Clear updating state after 2 seconds
+    
+    toast.success(`Updated ${updatedReservation.name}'s reservation to ${updatedReservation.status}`);
   };
 
   // Handle logout
