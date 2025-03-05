@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
 import { fr, ar } from 'date-fns/locale';
@@ -138,7 +139,9 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
     const options = [];
     const today = new Date();
     
-    for (let i = 0; i < 5; i++) {
+    // Start from tomorrow (i=1) instead of today (i=0)
+    // Show 7 days instead of 5
+    for (let i = 1; i < 8; i++) {
       const date = addDays(today, i);
       const dayOfWeek = date.getDay();
       const formattedDate = format(date, 'dd/MM/yyyy');
