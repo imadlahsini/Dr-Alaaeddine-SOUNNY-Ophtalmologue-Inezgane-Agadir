@@ -1,12 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
-// Use public URLs instead of direct imports
-const frFlag = '/images/fr.webp';
-const arFlag = '/images/ar.webp';
-const tmFlag = '/images/tm.webp';
+// Use direct paths to public directory
+const frFlag = './images/fr.webp';
+const arFlag = './images/ar.webp';
+const tmFlag = './images/tm.webp';
 
 interface LanguageSwitcherProps {
   currentLanguage: 'fr' | 'ar' | 'tm';

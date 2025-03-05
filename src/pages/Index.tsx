@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import ReservationForm from '../components/ReservationForm';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
-// Use public URL instead of direct import
-const logoImage = '/images/logo.webp';
+// Use direct path to public directory
+const logoImage = './images/logo.webp';
 
 const Index = () => {
   const [language, setLanguage] = useState<'fr' | 'ar' | 'tm'>('fr');
