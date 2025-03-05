@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
@@ -43,7 +42,7 @@ export const useDashboard = () => {
         phone: item.phone,
         date: item.date,
         timeSlot: item.time_slot,
-        status: item.status as ReservationStatus, // Cast the status to ReservationStatus type
+        status: item.status as ReservationStatus,
         createdAt: item.created_at
       }));
       
@@ -90,9 +89,9 @@ export const useDashboard = () => {
         return false;
       }
       
+      console.log(`Successfully deleted reservation with ID: ${id}`);
       toast.success('Reservation deleted successfully');
       
-      // Remove the reservation from local state to ensure UI updates immediately
       setReservations(prev => prev.filter(reservation => reservation.id !== id));
       setFilteredReservations(prev => prev.filter(reservation => reservation.id !== id));
       
