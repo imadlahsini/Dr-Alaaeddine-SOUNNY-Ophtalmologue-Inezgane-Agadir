@@ -273,7 +273,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
                 phone: formData.phone,
                 date: formData.date,
                 timeSlot: formData.timeSlot
-              }
+              },
+              language: language
             }
           });
         }, 1000);

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle, MapPin, Phone, Calendar, Clock, User } from 'lucide-react';
@@ -10,24 +11,81 @@ interface LocationState {
     date: string;
     timeSlot: string;
   };
+  language?: 'fr' | 'ar' | 'tm';
 }
+
+// Translations for the thank you page
+const translations = {
+  fr: {
+    title: "Merci pour votre réservation!",
+    subtitle: "Votre demande de rendez-vous a été reçue avec succès. Nous vous contacterons bientôt pour confirmer.",
+    steps: {
+      fillForm: "Remplir le formulaire",
+      formSent: "Formulaire envoyé",
+      confirmationCall: "Appel de confirmation"
+    },
+    reservationInfo: "Informations de réservation",
+    map: {
+      title: "Notre emplacement"
+    }
+  },
+  ar: {
+    title: "شكرًا على حجزك!",
+    subtitle: "تم استلام طلب موعدك بنجاح. سنتصل بك قريبًا للتأكيد.",
+    steps: {
+      fillForm: "ملء النموذج",
+      formSent: "تم إرسال النموذج",
+      confirmationCall: "مكالمة التأكيد"
+    },
+    reservationInfo: "معلومات الحجز",
+    map: {
+      title: "موقعنا"
+    }
+  },
+  tm: {
+    title: "ⵜⴰⵏⵎⵎⵉⵔⵜ ⵉ ⵓⵙⵖⵏ ⵏⵏⴽ!",
+    subtitle: "ⵜⴰⵡⴰⵍⵜ ⵏⵏⴽ ⵜⵜⵓⵔⵎⵙ ⵙ ⵜⵖⴰⵔⴰ. ⵔⴰⴷ ⴽⵉⴷⴽ ⵏⵎⵢⴰⵡⴰⴹ ⴷⵖⵢⴰ ⴰⴼⴰⴷ ⴰⴷ ⵏⵙⵏⵖⵎ.",
+    steps: {
+      fillForm: "ⵜⵓⵜⵍⴰⵢⵜ ⵏ ⵜⴼⵓⵍⵜ",
+      formSent: "ⵜⴼⵓⵍⵜ ⵜⵜⵓⵣⵏ",
+      confirmationCall: "ⵜⵉⵖⵔⵉ ⵏ ⵓⵙⵏⵖⵎ"
+    },
+    reservationInfo: "ⵉⵙⴰⵍⵏ ⵏ ⵜⵡⴰⵍⵜ",
+    map: {
+      title: "ⴰⴷⵖⴰⵔ ⵏⵏⵖ"
+    }
+  }
+};
 
 const ThankYou = () => {
   const location = useLocation();
   const [state, setState] = useState<LocationState>({});
+  const [language, setLanguage] = useState<'fr' | 'ar' | 'tm'>('fr');
 
   useEffect(() => {
     // Scroll to top when page loads
     window.scrollTo(0, 0);
     
-    // Get reservation details from location state if available
-    if (location.state && location.state.reservation) {
-      setState({ reservation: location.state.reservation });
-      console.log("Reservation data received:", location.state.reservation);
-    } else {
-      console.warn("No reservation data in location state");
+    // Get reservation details and language from location state if available
+    if (location.state) {
+      setState(location.state);
+      
+      if (location.state.language) {
+        setLanguage(location.state.language);
+        console.log("Language received:", location.state.language);
+      }
+      
+      if (location.state.reservation) {
+        console.log("Reservation data received:", location.state.reservation);
+      } else {
+        console.warn("No reservation data in location state");
+      }
     }
   }, [location]);
+
+  // Get translations based on current language
+  const t = translations[language];
+  const isRtl = language === 'ar';
 
   // Format the date if available (from DD/MM/YYYY to a more readable format)
   const formatDate = (dateString: string) => {
@@ -36,7 +94,10 @@ const ThankYou = () => {
     const [day, month, year] = dateString.split('/');
     const date = new Date(`${year}-${month}-${day}`);
     
-    return date.toLocaleDateString('fr-FR', {
+    // Use appropriate locale based on language
+    const locale = language === 'fr' ? 'fr-FR' : language === 'ar' ? 'ar-MA' : 'fr-FR';
+    
+    return date.toLocaleDateString(locale, {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
@@ -45,7 +106,7 @@ const ThankYou = () => {
   };
 
   return (
-    <div className="h-screen bg-background flex flex-col items-center justify-between p-0 relative overflow-hidden">
+    <div className={`h-screen bg-background flex flex-col items-center justify-between p-0 relative overflow-hidden ${isRtl ? 'rtl' : 'ltr'}`} dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Top Section - Reservation Details */}
       <motion.div 
         className="w-full max-w-md bg-white pt-6 pb-4 px-6 sm:px-8 text-center z-10 relative h-[55vh] flex flex-col"
@@ -76,7 +137,7 @@ const ThankYou = () => {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="text-xl sm:text-2xl font-bold text-primary mb-2"
         >
-          Merci pour votre réservation!
+          {t.title}
         </motion.h1>
         
         <motion.p
@@ -85,7 +146,7 @@ const ThankYou = () => {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="text-gray-600 mb-6 text-sm sm:text-base"
         >
-          Votre demande de rendez-vous a été reçue avec succès. <b>Nous vous contacterons bientôt pour confirmer.</b>
+          {t.subtitle}
         </motion.p>
         
         {/* Status cards with increased spacing */}
@@ -99,21 +160,21 @@ const ThankYou = () => {
             <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white">
               ✓
             </div>
-            <div className="text-left font-semibold text-gray-800">Remplir le formulaire</div>
+            <div className="text-left font-semibold text-gray-800">{t.steps.fillForm}</div>
           </div>
           
           <div className="bg-gray-50 border border-primary rounded-xl p-3 flex items-center gap-3">
             <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white">
               ✓
             </div>
-            <div className="text-left font-semibold text-gray-800">Formulaire envoyé</div>
+            <div className="text-left font-semibold text-gray-800">{t.steps.formSent}</div>
           </div>
           
           <div className="bg-amber-50 border border-amber-400 rounded-xl p-3 flex items-center gap-3 animate-pulse">
             <div className="w-7 h-7 bg-amber-500 rounded-full flex items-center justify-center text-white">
               !
             </div>
-            <div className="text-left font-semibold text-gray-800">Appel de confirmation</div>
+            <div className="text-left font-semibold text-gray-800">{t.steps.confirmationCall}</div>
           </div>
         </motion.div>
         
@@ -125,32 +186,32 @@ const ThankYou = () => {
             transition={{ duration: 0.5, delay: 0.6 }}
             className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 mb-4 shadow-sm border border-gray-100 mt-auto"
           >
-            <h2 className="font-bold text-gray-800 mb-3 text-left">Informations de réservation</h2>
+            <h2 className={`font-bold text-gray-800 mb-3 ${isRtl ? 'text-right' : 'text-left'}`}>{t.reservationInfo}</h2>
             
             <div className="flex items-center gap-3 mb-2">
-              <User className="w-5 h-5 text-primary" />
-              <span className="text-gray-700 text-left text-sm">
+              <User className={`w-5 h-5 text-primary ${isRtl ? 'ml-1' : 'mr-1'}`} />
+              <span className={`text-gray-700 ${isRtl ? 'text-right' : 'text-left'} text-sm flex-1`}>
                 {state.reservation.name}
               </span>
             </div>
             
             <div className="flex items-center gap-3 mb-2">
-              <Phone className="w-5 h-5 text-primary" />
-              <span className="text-gray-700 text-left text-sm">
+              <Phone className={`w-5 h-5 text-primary ${isRtl ? 'ml-1' : 'mr-1'}`} />
+              <span className={`text-gray-700 ${isRtl ? 'text-right' : 'text-left'} text-sm flex-1`}>
                 {state.reservation.phone}
               </span>
             </div>
             
             <div className="flex items-center gap-3 mb-2">
-              <Calendar className="w-5 h-5 text-primary" />
-              <span className="text-gray-700 text-left text-sm">
+              <Calendar className={`w-5 h-5 text-primary ${isRtl ? 'ml-1' : 'mr-1'}`} />
+              <span className={`text-gray-700 ${isRtl ? 'text-right' : 'text-left'} text-sm flex-1`}>
                 {formatDate(state.reservation.date)}
               </span>
             </div>
             
             <div className="flex items-center gap-3">
-              <Clock className="w-5 h-5 text-primary" />
-              <span className="text-gray-700 text-left text-sm">
+              <Clock className={`w-5 h-5 text-primary ${isRtl ? 'ml-1' : 'mr-1'}`} />
+              <span className={`text-gray-700 ${isRtl ? 'text-right' : 'text-left'} text-sm flex-1`}>
                 {state.reservation.timeSlot}
               </span>
             </div>
