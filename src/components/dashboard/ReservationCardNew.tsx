@@ -73,6 +73,21 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
     }
   };
 
+  // Get status color for the status indicator
+  const getStatusColor = (status: ReservationStatus): string => {
+    switch (status) {
+      case 'Confirmed':
+        return 'text-green-600 font-medium';
+      case 'Not Responding':
+        return 'text-orange-600 font-medium';
+      case 'Canceled':
+        return 'text-red-600 font-medium';
+      case 'Pending':
+      default:
+        return 'text-blue-600 font-medium';
+    }
+  };
+
   // Use the local state for rendering
   const displayReservation = localReservation;
 
@@ -80,6 +95,9 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
     <div className={`border rounded-lg p-3 shadow-sm ${isUpdating ? 'opacity-80' : ''} transition-opacity`}>
       <div className="flex justify-between items-start">
         <h3 className="font-medium">{displayReservation.name}</h3>
+        <span className={getStatusColor(displayReservation.status)}>
+          {displayReservation.status}
+        </span>
       </div>
       
       <div className="mt-2 space-y-1 text-sm text-gray-600">
@@ -104,7 +122,7 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
           onClick={() => updateStatus('Confirmed')}
           disabled={isUpdating}
         >
-          Confirmed
+          Confirm
         </Button>
         <Button 
           size="sm"
@@ -112,7 +130,7 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
           onClick={() => updateStatus('Not Responding')}
           disabled={isUpdating}
         >
-          Not Responding
+          No Response
         </Button>
         <Button 
           size="sm"
@@ -120,7 +138,7 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
           onClick={() => updateStatus('Canceled')}
           disabled={isUpdating}
         >
-          Canceled
+          Cancel
         </Button>
       </div>
     </div>
