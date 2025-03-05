@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -47,23 +46,19 @@ const Dashboard: React.FC = () => {
   // Set up hooks in the correct order to avoid race conditions
   const { isChecking, isAuth } = useAuthentication();
   
+  // Updated to match the actual properties returned by useReservations hook
   const {
     reservations,
-    loading,
+    isLoading,
     error,
-    fetchData,
-    refreshData,
-    handleStatusChange,
-    handleUpdate,
-    handleNewReservation,
-    handleReservationUpdate,
-    handleReservationDelete,
-    lastRefreshTime
+    loadReservations,
+    updateStatus
   } = useReservations();
 
-  // Stable callback references to prevent subscription recreations
+  // These callbacks need to be updated to match the actual hooks
   const onNewReservationCallback = useCallback((newReservation) => {
-    handleNewReservation(newReservation);
+    // Refresh data instead of using the non-existent handleNewReservation function
+    loadReservations();
     
     // Send notification
     try {
@@ -77,10 +72,16 @@ const Dashboard: React.FC = () => {
     } catch (notifError) {
       console.error('Failed to send push notification:', notifError);
     }
-  }, [handleNewReservation]);
+  }, [loadReservations]);
 
-  const onReservationUpdateCallback = useCallback(handleReservationUpdate, [handleReservationUpdate]);
-  const onReservationDeleteCallback = useCallback(handleReservationDelete, [handleReservationDelete]);
+  // Updated callbacks to use loadReservations instead
+  const onReservationUpdateCallback = useCallback(() => {
+    loadReservations();
+  }, [loadReservations]);
+  
+  const onReservationDeleteCallback = useCallback(() => {
+    loadReservations();
+  }, [loadReservations]);
 
   // Set up realtime subscription with memoized callbacks to prevent recreating the subscription
   const { isSubscribed } = useRealtimeSubscription({
@@ -148,19 +149,19 @@ const Dashboard: React.FC = () => {
     console.log("Authentication confirmed, fetching data ONCE...");
     dataFetchedRef.current = true;
     
-    fetchData().catch(err => {
+    loadReservations().catch(err => {
       console.error("Error during initial data fetch:", err);
       dataFetchedRef.current = false; // Reset on error to allow retry
     });
-  }, [isMounted, isChecking, isAuth, fetchData]);
+  }, [isMounted, isChecking, isAuth, loadReservations]);
 
   // Set up a loading timeout
   useEffect(() => {
-    if (!loading || !isMounted) return;
+    if (!isLoading || !isMounted) return;
     
     console.log("Setting up loading timeout");
     const loadingTimeoutId = setTimeout(() => {
-      if (loading) {
+      if (isLoading) {
         console.log("Loading timeout triggered");
         setTimeoutOccurred(true);
       }
@@ -169,7 +170,7 @@ const Dashboard: React.FC = () => {
     return () => {
       clearTimeout(loadingTimeoutId);
     };
-  }, [loading, isMounted]);
+  }, [isLoading, isMounted]);
 
   // Create debounced search handler
   const debouncedSetSearchQuery = useCallback(
@@ -185,7 +186,7 @@ const Dashboard: React.FC = () => {
     
     setIsRefreshing(true);
     try {
-      await refreshData();
+      await loadReservations();
       toast.success('Dashboard refreshed successfully');
     } catch (error) {
       toast.error('Failed to refresh dashboard');
@@ -294,10 +295,8 @@ const Dashboard: React.FC = () => {
     };
   }, [reservations]);
 
-  // Format last refresh time
-  const formattedLastRefreshTime = lastRefreshTime 
-    ? format(lastRefreshTime, 'dd/MM/yyyy HH:mm:ss')
-    : 'Never';
+  // Format last refresh time - using current date since lastRefreshTime isn't available
+  const formattedLastRefreshTime = new Date().toLocaleString();
 
   // Handle authentication checking
   if (isChecking) {
@@ -312,19 +311,19 @@ const Dashboard: React.FC = () => {
       onLogout={handleLogout}
     >
       {/* Handle loading state with timeout fallback */}
-      {loading && (
+      {isLoading && (
         timeoutOccurred 
-          ? <ErrorState error="Loading is taking longer than expected. Please try again." onRetry={fetchData} />
+          ? <ErrorState error="Loading is taking longer than expected. Please try again." onRetry={loadReservations} />
           : <LoadingState />
       )}
 
       {/* Handle error state */}
-      {!loading && error && (
-        <ErrorState error={error} onRetry={fetchData} />
+      {!isLoading && error && (
+        <ErrorState error={error} onRetry={loadReservations} />
       )}
 
       {/* Main content when data is loaded successfully */}
-      {!loading && !error && (
+      {!isLoading && !error && (
         <div className="space-y-6 min-h-screen">
           {/* Notification Settings */}
           <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm">
@@ -429,8 +428,8 @@ const Dashboard: React.FC = () => {
                     <ReservationCard
                       key={reservation.id}
                       reservation={reservation}
-                      onStatusChange={handleStatusChange}
-                      onUpdate={handleUpdate}
+                      onStatusChange={(id, status) => updateStatus(id, status)}
+                      onUpdate={() => loadReservations()}
                     />
                   ))}
                 </div>
