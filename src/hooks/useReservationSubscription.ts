@@ -23,24 +23,63 @@ export const useReservationSubscription = ({
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
   const MAX_RETRY_ATTEMPTS = 5;
+  const isCleaningUpRef = useRef(false);
   
   useEffect(() => {
+    // Function to enable realtime for the reservations table
+    const enableRealtimeForTable = async () => {
+      try {
+        // This is necessary to make sure the table has REPLICA IDENTITY FULL set
+        // and is added to the publication for realtime updates
+        const { error } = await supabase.rpc('enable_realtime_for_table', {
+          table_name: 'reservations'
+        });
+        
+        if (error) {
+          console.error('Failed to enable realtime for reservations table:', error);
+        } else {
+          console.log('Successfully enabled realtime for reservations table');
+        }
+      } catch (error) {
+        console.error('Error calling enable_realtime_for_table function:', error);
+      }
+    };
+
+    // Try to ensure the table is set up for realtime
+    enableRealtimeForTable();
+    
     const setupRealtimeSubscription = () => {
-      // Clear any previous channel
+      // Prevent setup if we're in the process of cleaning up
+      if (isCleaningUpRef.current) {
+        return;
+      }
+      
+      // Clear any previous channel before setting up a new one
       if (realtimeChannelRef.current) {
         try {
+          console.log('Removing previous channel before setting up a new one');
           supabase.removeChannel(realtimeChannelRef.current);
+          realtimeChannelRef.current = null;
         } catch (error) {
           console.error('Error removing previous channel:', error);
         }
       }
       
+      // Clear any pending retry attempts
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+      
       setConnectionStatus('connecting');
       console.log('Setting up realtime subscription for reservations...');
       
+      // Create a unique channel name with timestamp to avoid conflicts
+      const channelName = `reservation-changes-${Date.now()}`;
+      
       // Set up the new channel
       const channel = supabase
-        .channel('reservation-changes')
+        .channel(channelName)
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
@@ -108,27 +147,24 @@ export const useReservationSubscription = ({
             console.log('Realtime subscription active for reservations table');
             setConnectionStatus('connected');
             retryCountRef.current = 0; // Reset retry counter on successful connection
-            
-            // Clear any pending retry attempts
-            if (retryTimeoutRef.current) {
-              clearTimeout(retryTimeoutRef.current);
-              retryTimeoutRef.current = null;
-            }
-          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             console.error('Failed to subscribe to realtime changes:', status);
             setConnectionStatus('disconnected');
             
-            // Retry logic with exponential backoff
-            if (retryCountRef.current < MAX_RETRY_ATTEMPTS) { // Maximum 5 retry attempts
+            // Only retry if we haven't reached the max retry attempts 
+            // and we're not in the process of cleaning up
+            if (retryCountRef.current < MAX_RETRY_ATTEMPTS && !isCleaningUpRef.current) {
               const retryDelay = Math.min(1000 * Math.pow(2, retryCountRef.current), 30000); // Max 30s delay
               console.log(`Will retry connection in ${retryDelay}ms (attempt ${retryCountRef.current + 1}/${MAX_RETRY_ATTEMPTS})`);
               
+              // Increment retry count before setting timeout
+              retryCountRef.current += 1;
+              
               retryTimeoutRef.current = setTimeout(() => {
-                console.log(`Retrying connection (attempt ${retryCountRef.current + 1}/${MAX_RETRY_ATTEMPTS})...`);
-                retryCountRef.current += 1;
+                console.log(`Retrying connection (attempt ${retryCountRef.current}/${MAX_RETRY_ATTEMPTS})...`);
                 setupRealtimeSubscription();
               }, retryDelay);
-            } else {
+            } else if (retryCountRef.current >= MAX_RETRY_ATTEMPTS) {
               toast.error('Failed to connect to realtime updates', {
                 description: 'Status updates may not be reflected immediately. Please refresh the page.'
               });
@@ -142,14 +178,19 @@ export const useReservationSubscription = ({
     setupRealtimeSubscription();
     
     return () => {
+      // Mark that we're cleaning up to prevent new subscriptions from being created
+      isCleaningUpRef.current = true;
+      
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
       }
       
       if (realtimeChannelRef.current) {
         console.log('Cleaning up realtime subscription');
         try {
           supabase.removeChannel(realtimeChannelRef.current);
+          realtimeChannelRef.current = null;
         } catch (error) {
           console.error('Error cleaning up realtime subscription:', error);
         }
