@@ -28,7 +28,6 @@ const NewDashboard: React.FC = () => {
     deleteReservation
   } = useDashboard();
 
-  // Handle logout
   const handleLogout = async () => {
     try {
       await logoutAdmin();
@@ -43,17 +42,14 @@ const NewDashboard: React.FC = () => {
     }
   };
   
-  // Clear all filters
   const clearFilters = useCallback(() => {
     setSearchQuery('');
   }, [setSearchQuery]);
   
-  // Handle authentication checking
   if (isChecking) {
     return <DashboardLoading />;
   }
   
-  // Handle unauthorized access
   if (!isAuth) {
     navigate('/admin');
     return null;
@@ -62,7 +58,6 @@ const NewDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-full mx-auto px-4 py-4">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-gray-800">Reservation Dashboard</h1>
@@ -75,14 +70,12 @@ const NewDashboard: React.FC = () => {
           </button>
         </div>
         
-        {/* Main Content */}
         {isLoading ? (
           <DashboardLoading />
         ) : error ? (
           <DashboardError error={error} onRetry={refreshData} />
         ) : (
           <>
-            {/* Filters */}
             <div className="mb-6">
               <DashboardFiltersNew
                 searchQuery={searchQuery}
@@ -90,14 +83,12 @@ const NewDashboard: React.FC = () => {
               />
             </div>
             
-            {/* Reservations Lists */}
             {reservations.length === 0 ? (
               <DashboardEmpty onRefresh={refreshData} />
             ) : filteredReservations.length === 0 ? (
               <NoResultsFound onClearFilters={clearFilters} />
             ) : (
               <div className="space-y-6">
-                {/* Simplified view - just a flat list of reservations */}
                 <div className="bg-white rounded-xl shadow-sm p-5 overflow-auto">
                   <h2 className="font-semibold mb-4 text-gray-700">All Reservations ({filteredReservations.length})</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -75,7 +75,7 @@ export const useDashboard = () => {
   };
   
   // Delete reservation function
-  const deleteReservation = useCallback(async (id: string) => {
+  const deleteReservation = useCallback(async (id: string): Promise<boolean> => {
     try {
       console.log(`Attempting to delete reservation with ID: ${id}`);
       

@@ -8,7 +8,7 @@ import { supabase } from '../../integrations/supabase/client';
 interface ReservationCardProps {
   reservation: Reservation;
   compact?: boolean;
-  onDelete?: (id: string) => void;
+  onDelete?: (id: string) => Promise<boolean | void>;
 }
 
 const ReservationCardNew: React.FC<ReservationCardProps> = ({
@@ -24,11 +24,10 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
     try {
       setIsDeleting(true);
       console.log(`Calling delete handler for reservation ID: ${reservation.id}`);
-      const success = await onDelete(reservation.id);
-      
-      if (!success) {
-        throw new Error('Delete operation failed');
-      }
+      // Call the onDelete function but don't check its return value directly
+      // as it might be void
+      await onDelete(reservation.id);
+      // If we get here without an error being thrown, we can assume success
     } catch (error) {
       console.error('Error deleting reservation:', error);
       toast.error('Failed to delete reservation');
