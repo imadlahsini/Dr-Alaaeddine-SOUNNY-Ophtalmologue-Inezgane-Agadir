@@ -26,13 +26,23 @@ serve(async (req) => {
 
     console.log(`Webhook received ${type} event for record:`, record);
 
-    // Skip processing status changes completely
-    if (type === 'UPDATE' && body.old && body.old.status !== record.status) {
-      console.log(`Status change detected (${body.old.status} -> ${record.status}). Webhook will not process this update.`);
-      return new Response(JSON.stringify({ success: true, message: 'Status update ignored by webhook' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
+    // IMPORTANT: Completely ignore any status updates to prevent webhook interference
+    if (type === 'UPDATE' && body.old) {
+      const statusChanged = body.old.status !== record.status;
+      const isStatusOnlyChange = 
+        body.old.name === record.name && 
+        body.old.phone === record.phone && 
+        body.old.date === record.date && 
+        body.old.time_slot === record.time_slot &&
+        body.old.status !== record.status;
+        
+      if (statusChanged || isStatusOnlyChange) {
+        console.log(`Status change detected (${body.old.status} -> ${record.status}). Webhook IGNORING this update.`);
+        return new Response(JSON.stringify({ success: true, message: 'Status update ignored by webhook' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      }
     }
       
     // Format the data to send to the webhook

@@ -198,11 +198,14 @@ export const useDashboard = () => {
   
   const updateReservationStatus = async (id: string, status: ReservationStatus) => {
     try {
-      if (isUpdating[id]) return;
+      if (isUpdating[id]) {
+        console.log(`Skipping update for ${id} as it's already in progress`);
+        return;
+      }
       
       setIsUpdating(prev => ({ ...prev, [id]: true }));
       
-      console.log(`Updating reservation ${id} status to ${status}`);
+      console.log(`Handling status update for reservation ${id} to ${status} in useDashboard`);
       
       // First, update the local state for immediate UI response
       setState(prev => {
@@ -225,11 +228,13 @@ export const useDashboard = () => {
         };
       });
       
-      // Then update the database - this happens in the card component
-      // But we'll still check if everything is ok
-      await new Promise(resolve => setTimeout(resolve, 500)); // Small delay to let the card component update the DB first
+      // Database update is handled in the ReservationCardNew component
+      // We don't need to update the database here again
       
-      // Verify the update in the database
+      // Wait a brief moment to ensure DB operation in the card component completes
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Verify the update in the database - this is a failsafe
       const { data, error: checkError } = await supabase
         .from('reservations')
         .select('status')
@@ -239,14 +244,14 @@ export const useDashboard = () => {
       if (checkError) {
         console.warn('Error verifying status update:', checkError);
       } else if (data.status !== status) {
-        console.warn(`Status verification failed: Expected ${status}, found ${data.status}`);
-        // Re-fetch to synchronize with the database
+        console.warn(`Status verification failed: Database has ${data.status}, but UI expected ${status}`);
+        // Re-fetch if the database doesn't match what we expected
         fetchReservations();
+      } else {
+        console.log(`Verified: Database status for ${id} is ${data.status} as expected`);
       }
     } catch (error) {
-      console.error('Error handling status update:', error);
-      toast.error('Error updating reservation status');
-      // Re-fetch on error to ensure UI is synchronized with database
+      console.error('Error handling status update in useDashboard:', error);
       fetchReservations();
     } finally {
       setIsUpdating(prev => ({ ...prev, [id]: false }));
@@ -311,9 +316,9 @@ export const useDashboard = () => {
         }, payload => {
           console.log('Reservation updated:', payload);
           
-          // Don't process if we're the ones who triggered the update
+          // Skip processing if we initiated the update to avoid double processing
           if (isUpdating[payload.new.id]) {
-            console.log(`Ignoring update for ${payload.new.id} as it was triggered locally`);
+            console.log(`Ignoring external update for ${payload.new.id} as it was triggered locally`);
             return;
           }
           
