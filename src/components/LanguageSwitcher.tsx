@@ -1,11 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
-// Use direct paths to public directory
-const frFlag = './images/fr.webp';
-const arFlag = './images/ar.webp';
-const tmFlag = './images/tm.webp';
+// Import directly from assets directory
+import frFlag from '../assets/images/fr.webp';
+import arFlag from '../assets/images/ar.webp';
+import tmFlag from '../assets/images/tm.webp';
 
 interface LanguageSwitcherProps {
   currentLanguage: 'fr' | 'ar' | 'tm';
