@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
@@ -74,6 +73,34 @@ export const useDashboard = () => {
     setFilteredReservations(filtered);
   };
   
+  // Delete reservation function
+  const deleteReservation = useCallback(async (id: string) => {
+    try {
+      console.log(`Deleting reservation with ID: ${id}`);
+      
+      const { error } = await supabase
+        .from('reservations')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error deleting reservation:', error);
+        toast.error('Failed to delete reservation');
+        return false;
+      }
+      
+      toast.success('Reservation deleted successfully');
+      
+      // We don't need to update the state here as the realtime subscription
+      // will handle that automatically when the delete event is triggered
+      return true;
+    } catch (error) {
+      console.error('Error deleting reservation:', error);
+      toast.error('Failed to delete reservation');
+      return false;
+    }
+  }, []);
+  
   // Manual refresh function
   const refreshData = useCallback(() => {
     fetchReservations();
@@ -129,7 +156,8 @@ export const useDashboard = () => {
     error,
     lastRefreshed,
     setSearchQuery: handleSetSearchQuery,
-    refreshData
+    refreshData,
+    deleteReservation
   };
 };
 

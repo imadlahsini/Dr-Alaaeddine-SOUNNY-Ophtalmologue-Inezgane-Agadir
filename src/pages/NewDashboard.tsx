@@ -25,7 +25,8 @@ const NewDashboard: React.FC = () => {
     isLoading,
     error,
     setSearchQuery,
-    refreshData
+    refreshData,
+    deleteReservation
   } = useDashboard();
 
   // Handle logout
@@ -61,15 +62,15 @@ const NewDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-full mx-auto px-2 py-2">
+      <div className="max-w-full mx-auto px-4 py-4">
         {/* Header */}
-        <div className="flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm">
+        <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold">Reservation Dashboard</h1>
+            <h1 className="text-xl font-bold text-gray-800">Reservation Dashboard</h1>
           </div>
           <button 
             onClick={handleLogout}
-            className="px-3 py-1 bg-gray-500 text-white rounded-lg"
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
           >
             Logout
           </button>
@@ -83,7 +84,7 @@ const NewDashboard: React.FC = () => {
         ) : (
           <>
             {/* Filters */}
-            <div className="mb-4">
+            <div className="mb-6">
               <DashboardFiltersNew
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
@@ -96,16 +97,17 @@ const NewDashboard: React.FC = () => {
             ) : filteredReservations.length === 0 ? (
               <NoResultsFound onClearFilters={clearFilters} />
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {/* Simplified view - just a flat list of reservations */}
-                <div className="bg-white rounded-lg shadow-sm p-3 overflow-auto">
-                  <h2 className="font-semibold mb-2">All Reservations ({filteredReservations.length})</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="bg-white rounded-xl shadow-sm p-5 overflow-auto">
+                  <h2 className="font-semibold mb-4 text-gray-700">All Reservations ({filteredReservations.length})</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredReservations.map((reservation) => (
                       <ReservationCardNew
                         key={reservation.id}
                         reservation={reservation}
                         compact={true}
+                        onDelete={deleteReservation}
                       />
                     ))}
                   </div>
