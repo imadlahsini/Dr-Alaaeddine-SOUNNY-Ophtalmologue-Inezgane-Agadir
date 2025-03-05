@@ -32,7 +32,7 @@ export const useReservationSubscription = ({
         // This is necessary to make sure the table has REPLICA IDENTITY FULL set
         // and is added to the publication for realtime updates
         const { error } = await supabase.rpc('enable_realtime_for_table', {
-          table_name: 'reservations'
+          table_name: 'reservations' // Pass the parameter as an object with named parameter
         });
         
         if (error) {
