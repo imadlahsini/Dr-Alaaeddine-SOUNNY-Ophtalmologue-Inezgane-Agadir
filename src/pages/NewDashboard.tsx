@@ -19,6 +19,9 @@ const NewDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { isChecking, isAuth } = useAuthentication();
   
+  // Track reservations with pending updates
+  const [updatingReservations, setUpdatingReservations] = useState<Set<string>>(new Set());
+  
   const {
     reservations,
     filteredReservations,
@@ -32,7 +35,23 @@ const NewDashboard: React.FC = () => {
 
   // Handle status update
   const handleStatusUpdate = (updatedReservation: Reservation) => {
-    // The useDashboard hook handles realtime updates, so we don't need to manually update the state
+    // Add the reservation ID to the updating set
+    setUpdatingReservations(prev => {
+      const newSet = new Set(prev);
+      newSet.add(updatedReservation.id);
+      
+      // Set a timeout to remove the ID after a short delay
+      setTimeout(() => {
+        setUpdatingReservations(current => {
+          const updated = new Set(current);
+          updated.delete(updatedReservation.id);
+          return updated;
+        });
+      }, 2000); // Clear updating state after 2 seconds
+      
+      return newSet;
+    });
+    
     toast.success(`Updated ${updatedReservation.name}'s reservation to ${updatedReservation.status}`);
   };
 

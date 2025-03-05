@@ -58,9 +58,9 @@ export const useReservationSubscription = ({
           schema: 'public',
           table: 'reservations'
         }, payload => {
-          console.log('Reservation updated:', payload);
+          console.log('Reservation updated via realtime:', payload);
           
-          // This update is from another device, so we should apply it
+          // Create a proper Reservation object from the payload
           const updatedReservation: Reservation = {
             id: payload.new.id,
             name: payload.new.name,
@@ -73,12 +73,13 @@ export const useReservationSubscription = ({
           
           // Show a status update notification if status changed
           if (payload.old.status !== payload.new.status) {
+            console.log(`Status changed: ${payload.old.status} → ${payload.new.status}`);
             toast.info(`Reservation status updated`, {
               description: `${updatedReservation.name}: ${payload.old.status} → ${payload.new.status}`
             });
           }
           
-          console.log(`External update for reservation ${updatedReservation.id}, new status: ${updatedReservation.status}`);
+          console.log(`Calling onUpdate for reservation ${updatedReservation.id}, status: ${updatedReservation.status}`);
           onUpdate(updatedReservation);
         })
         .on('postgres_changes', {
@@ -94,6 +95,11 @@ export const useReservationSubscription = ({
           console.log('Realtime subscription status:', status);
           if (status === 'SUBSCRIBED') {
             console.log('Realtime subscription active for reservations table');
+          } else {
+            console.error('Failed to subscribe to realtime changes:', status);
+            toast.error('Failed to connect to realtime updates', {
+              description: 'Status updates may not be reflected immediately'
+            });
           }
         });
       

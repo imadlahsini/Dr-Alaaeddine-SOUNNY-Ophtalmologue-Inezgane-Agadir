@@ -21,6 +21,11 @@ const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
   const [status, setStatus] = useState<ReservationStatus>(reservation.status);
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // Reset status to current reservation status when modal opens/closes
+  React.useEffect(() => {
+    setStatus(reservation.status);
+  }, [reservation.status, open]);
+
   // Array of possible statuses
   const statuses: ReservationStatus[] = ['Confirmed', 'Not Responding', 'Canceled', 'Pending'];
 
@@ -33,6 +38,17 @@ const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     setIsUpdating(true);
     try {
       console.log(`Updating reservation ${reservation.id} status from ${reservation.status} to ${status}`);
+      
+      // Create updated reservation object for immediate UI update
+      const updatedReservation: Reservation = {
+        ...reservation,
+        status: status
+      };
+      
+      // Call the callback immediately to update UI
+      if (onStatusUpdate) {
+        onStatusUpdate(updatedReservation);
+      }
       
       // Update in Supabase - this will trigger the realtime subscription
       const { error } = await supabase
@@ -48,22 +64,16 @@ const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         throw error;
       }
       
-      // Create updated reservation object
-      const updatedReservation: Reservation = {
-        ...reservation,
-        status: status
-      };
-
-      // Call the callback if provided
-      if (onStatusUpdate) {
-        onStatusUpdate(updatedReservation);
-      }
-      
       toast.success(`Status updated to ${status}`);
       setOpen(false);
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error('Failed to update status');
+      
+      // Revert UI to original status if there was an error
+      if (onStatusUpdate) {
+        onStatusUpdate(reservation);
+      }
     } finally {
       setIsUpdating(false);
     }
