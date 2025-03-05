@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
 import { Reservation, ReservationStatus } from '../types/reservation';
@@ -19,15 +19,25 @@ export const useReservationSubscription = ({
   onDelete
 }: UseReservationSubscriptionProps) => {
   const realtimeChannelRef = useRef<any>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryCountRef = useRef(0);
   
   useEffect(() => {
     const setupRealtimeSubscription = () => {
+      // Clear any previous channel
       if (realtimeChannelRef.current) {
-        supabase.removeChannel(realtimeChannelRef.current);
+        try {
+          supabase.removeChannel(realtimeChannelRef.current);
+        } catch (error) {
+          console.error('Error removing previous channel:', error);
+        }
       }
       
+      setConnectionStatus('connecting');
       console.log('Setting up realtime subscription for reservations...');
       
+      // Set up the new channel
       const channel = supabase
         .channel('reservation-changes')
         .on('postgres_changes', {
@@ -95,11 +105,33 @@ export const useReservationSubscription = ({
           console.log('Realtime subscription status:', status);
           if (status === 'SUBSCRIBED') {
             console.log('Realtime subscription active for reservations table');
-          } else {
+            setConnectionStatus('connected');
+            retryCountRef.current = 0; // Reset retry counter on successful connection
+            
+            // Clear any pending retry attempts
+            if (retryTimeoutRef.current) {
+              clearTimeout(retryTimeoutRef.current);
+              retryTimeoutRef.current = null;
+            }
+          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
             console.error('Failed to subscribe to realtime changes:', status);
-            toast.error('Failed to connect to realtime updates', {
-              description: 'Status updates may not be reflected immediately'
-            });
+            setConnectionStatus('disconnected');
+            
+            // Retry logic with exponential backoff
+            if (retryCountRef.current < 5) { // Maximum 5 retry attempts
+              const retryDelay = Math.min(1000 * Math.pow(2, retryCountRef.current), 30000); // Max 30s delay
+              console.log(`Will retry connection in ${retryDelay}ms (attempt ${retryCountRef.current + 1}/5)`);
+              
+              retryTimeoutRef.current = setTimeout(() => {
+                console.log(`Retrying connection (attempt ${retryCountRef.current + 1}/5)...`);
+                retryCountRef.current += 1;
+                setupRealtimeSubscription();
+              }, retryDelay);
+            } else {
+              toast.error('Failed to connect to realtime updates', {
+                description: 'Status updates may not be reflected immediately. Please refresh the page.'
+              });
+            }
           }
         });
       
@@ -109,14 +141,23 @@ export const useReservationSubscription = ({
     setupRealtimeSubscription();
     
     return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+      
       if (realtimeChannelRef.current) {
         console.log('Cleaning up realtime subscription');
-        supabase.removeChannel(realtimeChannelRef.current);
+        try {
+          supabase.removeChannel(realtimeChannelRef.current);
+        } catch (error) {
+          console.error('Error cleaning up realtime subscription:', error);
+        }
       }
     };
   }, [onInsert, onUpdate, onDelete]);
   
   return {
-    realtimeChannel: realtimeChannelRef.current
+    realtimeChannel: realtimeChannelRef.current,
+    connectionStatus
   };
 };
