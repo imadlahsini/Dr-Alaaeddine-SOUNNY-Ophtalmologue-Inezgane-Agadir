@@ -26,7 +26,7 @@ export const useReservationSubscription = ({
     // Create a unique channel name with timestamp to avoid conflicts
     const channelName = `reservation-changes-${Date.now()}`;
     
-    // Set up the new channel
+    // Set up the new channel with specific filters for each event type
     const channel = supabase
       .channel(channelName)
       .on('postgres_changes', {
@@ -73,9 +73,13 @@ export const useReservationSubscription = ({
         // Show a status update notification if status changed
         if (payload.old.status !== payload.new.status) {
           console.log(`Status changed: ${payload.old.status} → ${payload.new.status}`);
-          toast.info(`Reservation status updated`, {
-            description: `${updatedReservation.name}: ${payload.old.status} → ${payload.new.status}`
-          });
+          
+          // Only show toast if this was NOT a manual update from this device
+          if (!payload.new.manual_update) {
+            toast.info(`Reservation status updated`, {
+              description: `${updatedReservation.name}: ${payload.old.status} → ${payload.new.status}`
+            });
+          }
         }
         
         console.log(`Calling onUpdate for reservation ${updatedReservation.id}, status: ${updatedReservation.status}`);
@@ -90,7 +94,15 @@ export const useReservationSubscription = ({
         onDelete(payload.old.id);
         toast.info('A reservation has been deleted');
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Realtime subscription status: ${status}`);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to realtime changes');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Error connecting to realtime changes');
+          toast.error('Connection error, updates may be delayed');
+        }
+      });
     
     realtimeChannelRef.current = channel;
     

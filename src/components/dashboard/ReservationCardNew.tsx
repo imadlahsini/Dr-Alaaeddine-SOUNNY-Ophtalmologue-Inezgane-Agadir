@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Phone, Calendar, Clock } from 'lucide-react';
 import { Reservation, ReservationStatus } from '../../types/reservation';
 import { Button } from '../ui/button';
@@ -21,7 +21,7 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   
   // Update local state when reservation prop changes
-  React.useEffect(() => {
+  useEffect(() => {
     setLocalReservation(reservation);
   }, [reservation]);
 
@@ -42,7 +42,7 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
     setLocalReservation(updatedReservation);
     
     try {
-      // Update in Supabase - this will trigger the realtime subscription
+      // Update in Supabase - this will trigger the realtime subscription on all devices
       const { error } = await supabase
         .from('reservations')
         .update({ 
@@ -69,7 +69,23 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
       // Revert UI to original status if there was an error
       setLocalReservation(reservation);
     } finally {
-      setTimeout(() => setIsUpdating(false), 300);
+      // Reset the manual_update flag after a short delay
+      try {
+        setTimeout(async () => {
+          const { error } = await supabase
+            .from('reservations')
+            .update({ manual_update: false })
+            .eq('id', localReservation.id);
+          
+          if (error) {
+            console.error('Error resetting manual_update flag:', error);
+          }
+          
+          setIsUpdating(false);
+        }, 500);
+      } catch (e) {
+        setIsUpdating(false);
+      }
     }
   };
 

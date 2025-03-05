@@ -8,6 +8,7 @@ import NewDashboard from './pages/NewDashboard';
 import NotFound from './pages/NotFound';
 import { Toaster } from "sonner";
 import { initializeNotifications } from './utils/pushNotificationService';
+import { enableRealtimeForReservations } from './integrations/supabase/enableRealtime';
 import './App.css';
 
 function App() {
@@ -23,6 +24,15 @@ function App() {
     
     // Initialize push notifications for admin users on app load
     initializeNotifications();
+    
+    // Enable realtime for reservations table
+    enableRealtimeForReservations().then(success => {
+      if (success) {
+        console.log('Realtime enabled for reservations table');
+      } else {
+        console.warn('Failed to enable realtime for reservations table');
+      }
+    });
     
     // Force a viewport meta tag update to ensure proper mobile scaling
     const updateViewport = () => {
