@@ -22,6 +22,7 @@ export const useReservationSubscription = ({
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
+  const MAX_RETRY_ATTEMPTS = 5;
   
   useEffect(() => {
     const setupRealtimeSubscription = () => {
@@ -118,12 +119,12 @@ export const useReservationSubscription = ({
             setConnectionStatus('disconnected');
             
             // Retry logic with exponential backoff
-            if (retryCountRef.current < 5) { // Maximum 5 retry attempts
+            if (retryCountRef.current < MAX_RETRY_ATTEMPTS) { // Maximum 5 retry attempts
               const retryDelay = Math.min(1000 * Math.pow(2, retryCountRef.current), 30000); // Max 30s delay
-              console.log(`Will retry connection in ${retryDelay}ms (attempt ${retryCountRef.current + 1}/5)`);
+              console.log(`Will retry connection in ${retryDelay}ms (attempt ${retryCountRef.current + 1}/${MAX_RETRY_ATTEMPTS})`);
               
               retryTimeoutRef.current = setTimeout(() => {
-                console.log(`Retrying connection (attempt ${retryCountRef.current + 1}/5)...`);
+                console.log(`Retrying connection (attempt ${retryCountRef.current + 1}/${MAX_RETRY_ATTEMPTS})...`);
                 retryCountRef.current += 1;
                 setupRealtimeSubscription();
               }, retryDelay);
