@@ -71,6 +71,13 @@ export const useReservationSubscription = ({
             createdAt: payload.new.created_at
           };
           
+          // Show a status update notification if status changed
+          if (payload.old.status !== payload.new.status) {
+            toast.info(`Reservation status updated`, {
+              description: `${updatedReservation.name}: ${payload.old.status} → ${payload.new.status}`
+            });
+          }
+          
           console.log(`External update for reservation ${updatedReservation.id}, new status: ${updatedReservation.status}`);
           onUpdate(updatedReservation);
         })

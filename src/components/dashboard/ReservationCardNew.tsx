@@ -1,16 +1,19 @@
 
 import React from 'react';
 import { Phone, Calendar, Clock } from 'lucide-react';
-import { Reservation, ReservationStatus } from '../../hooks/useDashboard';
+import { Reservation, ReservationStatus } from '../../types/reservation';
+import StatusUpdateModal from './StatusUpdateModal';
 
 interface ReservationCardProps {
   reservation: Reservation;
   compact?: boolean;
+  onStatusUpdate?: (updatedReservation: Reservation) => void;
 }
 
 const ReservationCardNew: React.FC<ReservationCardProps> = ({
   reservation,
-  compact = false
+  compact = false,
+  onStatusUpdate
 }) => {
   const getStatusColor = (status: ReservationStatus) => {
     switch(status) {
@@ -44,6 +47,11 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
           <span>{reservation.timeSlot}</span>
         </div>
       </div>
+
+      <StatusUpdateModal 
+        reservation={reservation}
+        onStatusUpdate={onStatusUpdate}
+      />
     </div>
   );
 };

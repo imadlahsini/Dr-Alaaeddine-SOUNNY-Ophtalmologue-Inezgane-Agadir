@@ -102,7 +102,7 @@ const NewDashboard: React.FC = () => {
                 {/* Simplified view - just a flat list of reservations */}
                 <div className="bg-white rounded-lg shadow-sm p-3 overflow-auto">
                   <h2 className="font-semibold mb-2">All Reservations ({filteredReservations.length})</h2>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {filteredReservations.map((reservation) => (
                       <ReservationCardNew
                         key={reservation.id}

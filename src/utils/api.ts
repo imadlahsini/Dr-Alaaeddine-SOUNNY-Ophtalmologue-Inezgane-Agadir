@@ -69,6 +69,42 @@ export async function createReservation(reservationData: Omit<Reservation, 'id' 
   }
 }
 
+export async function updateReservationStatus(id: string, status: Reservation['status']): Promise<{ success: boolean; message: string }> {
+  console.log(`Updating reservation ${id} status to ${status}`);
+  
+  try {
+    const { error } = await supabase
+      .from('reservations')
+      .update({ 
+        status: status,
+        manual_update: true // Mark this as a manual update by admin
+      })
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Supabase error:', error);
+      return { 
+        success: false, 
+        message: error.message || 'Error updating reservation status' 
+      };
+    }
+    
+    return { 
+      success: true, 
+      message: 'Reservation status updated successfully' 
+    };
+  } catch (error) {
+    console.error('Error updating reservation status:', error);
+    
+    let errorMessage = 'Network error. Please try again.';
+    if (error instanceof Error) {
+      errorMessage = `Error: ${error.message}`;
+    }
+    
+    return { success: false, message: errorMessage };
+  }
+}
+
 export async function fetchReservations(): Promise<{ success: boolean; data?: Reservation[]; message?: string }> {
   try {
     console.log('Fetching reservations from Supabase...');
