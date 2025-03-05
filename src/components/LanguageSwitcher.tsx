@@ -3,10 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
-// Import directly from assets directory
-import frFlag from '../assets/images/fr.webp';
-import arFlag from '../assets/images/ar.webp';
-import tmFlag from '../assets/images/tm.webp';
+// Use external image URLs
+const frFlag = 'https://winumaroc.com/imad/fr.webp';
+const arFlag = 'https://winumaroc.com/imad/ar.webp';
+const tmFlag = 'https://winumaroc.com/imad/tm.webp';
 
 interface LanguageSwitcherProps {
   currentLanguage: 'fr' | 'ar' | 'tm';
