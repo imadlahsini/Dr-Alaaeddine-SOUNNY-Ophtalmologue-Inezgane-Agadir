@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
@@ -52,7 +51,6 @@ export const useDashboard = () => {
   const [isUpdating, setIsUpdating] = useState<Record<string, boolean>>({});
   const realtimeChannelRef = useRef<any>(null);
   
-  // Fetch all reservations
   const fetchReservations = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -66,7 +64,6 @@ export const useDashboard = () => {
         throw error;
       }
       
-      // Transform data to match our interface
       const reservations: Reservation[] = data.map(item => ({
         id: item.id,
         name: item.name,
@@ -77,10 +74,8 @@ export const useDashboard = () => {
         createdAt: item.created_at
       }));
       
-      // Calculate stats
       const stats = calculateStats(reservations);
       
-      // Apply initial filters
       const filtered = applyFilters(
         reservations, 
         state.searchQuery, 
@@ -107,7 +102,6 @@ export const useDashboard = () => {
     }
   }, [state.searchQuery, state.statusFilter, state.dateFilter]);
   
-  // Calculate stats from reservations
   const calculateStats = (reservations: Reservation[]): Stats => {
     return {
       total: reservations.length,
@@ -118,7 +112,6 @@ export const useDashboard = () => {
     };
   };
   
-  // Apply filters to reservations
   const applyFilters = (
     reservations: Reservation[],
     searchQuery: string,
@@ -126,18 +119,15 @@ export const useDashboard = () => {
     dateFilter: string | null
   ): Reservation[] => {
     return reservations.filter(reservation => {
-      // Search filter
       const matchesSearch = 
         !searchQuery || 
         reservation.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         reservation.phone.includes(searchQuery);
       
-      // Status filter
       const matchesStatus = 
         statusFilter === 'All' || 
         reservation.status === statusFilter;
       
-      // Date filter
       const matchesDate = 
         !dateFilter || 
         reservation.date === dateFilter;
@@ -146,7 +136,6 @@ export const useDashboard = () => {
     });
   };
   
-  // Set up search filter
   const setSearchQuery = (query: string) => {
     setState(prev => {
       const filtered = applyFilters(
@@ -164,7 +153,6 @@ export const useDashboard = () => {
     });
   };
   
-  // Set up status filter
   const setStatusFilter = (status: ReservationStatus | 'All') => {
     setState(prev => {
       const filtered = applyFilters(
@@ -182,7 +170,6 @@ export const useDashboard = () => {
     });
   };
   
-  // Set up date filter
   const setDateFilter = (date: string | null) => {
     setState(prev => {
       const filtered = applyFilters(
@@ -200,16 +187,12 @@ export const useDashboard = () => {
     });
   };
   
-  // Update reservation status
   const updateReservationStatus = async (id: string, status: ReservationStatus) => {
     try {
-      // Skip if already updating
       if (isUpdating[id]) return;
       
-      // Set updating flag
       setIsUpdating(prev => ({ ...prev, [id]: true }));
       
-      // Optimistic update
       setState(prev => {
         const updatedReservations = prev.reservations.map(reservation => 
           reservation.id === id ? { ...reservation, status } : reservation
@@ -228,7 +211,6 @@ export const useDashboard = () => {
         };
       });
       
-      // Send the update to the server
       const { error } = await supabase
         .from('reservations')
         .update({ status })
@@ -241,22 +223,16 @@ export const useDashboard = () => {
       console.error('Error updating reservation status:', error);
       toast.error('Failed to update reservation status');
       
-      // Revert optimistic update on error
       fetchReservations();
     } finally {
-      // Clear updating flag
       setIsUpdating(prev => ({ ...prev, [id]: false }));
     }
   };
   
-  // Set up realtime subscription
   useEffect(() => {
-    // Initialize the reservation data
     fetchReservations();
     
-    // Set up realtime subscription
     const setupRealtimeSubscription = () => {
-      // Remove any existing channel
       if (realtimeChannelRef.current) {
         supabase.removeChannel(realtimeChannelRef.current);
       }
@@ -270,7 +246,6 @@ export const useDashboard = () => {
         }, payload => {
           console.log('New reservation received:', payload);
           
-          // Format the new reservation
           const newReservation: Reservation = {
             id: payload.new.id,
             name: payload.new.name,
@@ -281,7 +256,6 @@ export const useDashboard = () => {
             createdAt: payload.new.created_at
           };
           
-          // Add the new reservation to state
           setState(prev => {
             const updatedReservations = [newReservation, ...prev.reservations];
             
@@ -298,7 +272,6 @@ export const useDashboard = () => {
             };
           });
           
-          // Show notification
           toast.success(`New reservation from ${newReservation.name}`, {
             description: `For ${newReservation.date} at ${newReservation.timeSlot}`
           });
@@ -310,10 +283,8 @@ export const useDashboard = () => {
         }, payload => {
           console.log('Reservation updated:', payload);
           
-          // Skip if we're currently updating this reservation (to avoid duplicate updates)
           if (isUpdating[payload.new.id]) return;
           
-          // Format the updated reservation
           const updatedReservation: Reservation = {
             id: payload.new.id,
             name: payload.new.name,
@@ -324,7 +295,6 @@ export const useDashboard = () => {
             createdAt: payload.new.created_at
           };
           
-          // Update the reservation in state
           setState(prev => {
             const updatedReservations = prev.reservations.map(reservation => 
               reservation.id === updatedReservation.id ? updatedReservation : reservation
@@ -350,7 +320,6 @@ export const useDashboard = () => {
         }, payload => {
           console.log('Reservation deleted:', payload);
           
-          // Remove the deleted reservation from state
           setState(prev => {
             const updatedReservations = prev.reservations.filter(
               reservation => reservation.id !== payload.old.id
@@ -384,7 +353,6 @@ export const useDashboard = () => {
     
     setupRealtimeSubscription();
     
-    // Clean up subscription on unmount
     return () => {
       if (realtimeChannelRef.current) {
         supabase.removeChannel(realtimeChannelRef.current);

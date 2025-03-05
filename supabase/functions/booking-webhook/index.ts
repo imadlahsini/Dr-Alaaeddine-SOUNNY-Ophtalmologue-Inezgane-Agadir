@@ -40,7 +40,7 @@ serve(async (req) => {
       };
 
       // Send the data to the external webhook
-      const webhookUrl = "https://winu.app.n8n.cloud/webhook/8feeb3e5-0491-4c35-99ce-d3527c13cd59";
+      const webhookUrl = Deno.env.get('WEBHOOK_URL') ?? "https://winu.app.n8n.cloud/webhook/8feeb3e5-0491-4c35-99ce-d3527c13cd59";
       const webhookResponse = await fetch(webhookUrl, {
         method: 'POST',
         headers: {

@@ -17,25 +17,33 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
       bg: 'bg-yellow-50',
       text: 'text-yellow-700',
       border: 'border-yellow-200',
-      icon: <AlertTriangle className="w-4 h-4 text-yellow-500" />
+      icon: <AlertTriangle className="w-4 h-4 text-yellow-500" />,
+      cardBg: 'bg-yellow-50',
+      headerBg: 'bg-yellow-100'
     },
     Confirmed: {
       bg: 'bg-green-50',
       text: 'text-green-700',
       border: 'border-green-200',
-      icon: <CheckCircle className="w-4 h-4 text-green-500" />
+      icon: <CheckCircle className="w-4 h-4 text-green-500" />,
+      cardBg: 'bg-green-50',
+      headerBg: 'bg-green-100'
     },
     Canceled: {
       bg: 'bg-red-50',
       text: 'text-red-700',
       border: 'border-red-200',
-      icon: <XCircle className="w-4 h-4 text-red-500" />
+      icon: <XCircle className="w-4 h-4 text-red-500" />,
+      cardBg: 'bg-red-50',
+      headerBg: 'bg-red-100'
     },
     'Not Responding': {
       bg: 'bg-gray-50',
       text: 'text-gray-700',
       border: 'border-gray-200',
-      icon: <AlertTriangle className="w-4 h-4 text-gray-500" />
+      icon: <AlertTriangle className="w-4 h-4 text-gray-500" />,
+      cardBg: 'bg-gray-50',
+      headerBg: 'bg-gray-100'
     }
   };
 
@@ -48,9 +56,9 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
+    <div className={`rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200 ${statusStyle.cardBg}`}>
       {/* Header */}
-      <div className="flex justify-between items-center px-5 py-4 bg-gray-50">
+      <div className={`flex justify-between items-center px-5 py-4 ${statusStyle.headerBg}`}>
         <div className={`flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}>
           {statusStyle.icon}
           <span className="ml-1.5">{reservation.status}</span>
@@ -80,7 +88,7 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
       </div>
 
       {/* Actions */}
-      <div className="border-t border-gray-100 px-5 py-3">
+      <div className={`border-t ${statusStyle.border} px-5 py-3`}>
         <div className="flex flex-wrap gap-2 justify-center">
           <button
             onClick={() => handleStatusChange('Confirmed')}
@@ -88,7 +96,7 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
             className={`px-4 py-1.5 rounded-full text-sm font-medium flex items-center ${
               reservation.status === 'Confirmed'
                 ? 'bg-green-100 text-green-700 cursor-default'
-                : 'bg-gray-100 hover:bg-green-100 text-gray-700 hover:text-green-700'
+                : 'bg-white hover:bg-green-100 text-gray-700 hover:text-green-700 border border-gray-200'
             }`}
           >
             <CheckCircle className="w-3.5 h-3.5 mr-1" />
@@ -101,7 +109,7 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
             className={`px-4 py-1.5 rounded-full text-sm font-medium flex items-center ${
               reservation.status === 'Not Responding'
                 ? 'bg-gray-200 text-gray-700 cursor-default'
-                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                : 'bg-white hover:bg-gray-200 text-gray-700 border border-gray-200'
             }`}
           >
             <AlertTriangle className="w-3.5 h-3.5 mr-1" />
@@ -114,7 +122,7 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
             className={`px-4 py-1.5 rounded-full text-sm font-medium flex items-center ${
               reservation.status === 'Canceled'
                 ? 'bg-red-100 text-red-700 cursor-default'
-                : 'bg-gray-100 hover:bg-red-100 text-gray-700 hover:text-red-700'
+                : 'bg-white hover:bg-red-100 text-gray-700 hover:text-red-700 border border-gray-200'
             }`}
           >
             <XCircle className="w-3.5 h-3.5 mr-1" />
