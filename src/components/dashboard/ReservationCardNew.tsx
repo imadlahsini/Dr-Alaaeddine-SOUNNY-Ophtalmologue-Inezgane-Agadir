@@ -58,7 +58,7 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
       // Show toast for immediate feedback
       toast.info(`Updating to ${newStatus}...`);
       
-      // Direct update to database
+      // Direct update to database with explicit wait
       const { error } = await supabase
         .from('reservations')
         .update({ status: newStatus })
@@ -72,6 +72,9 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
       onStatusChange(reservation.id, newStatus);
       
       toast.success(`Status updated to ${newStatus}`);
+
+      // Log successful update
+      console.log(`Successfully updated reservation ${reservation.id} status to ${newStatus} in the database`);
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error(`Failed to update status: ${error instanceof Error ? error.message : 'Unknown error'}`);

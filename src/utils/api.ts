@@ -1,3 +1,4 @@
+
 /**
  * API configuration and utility functions using Supabase
  */
@@ -70,6 +71,8 @@ export async function createReservation(reservationData: Omit<Reservation, 'id' 
 
 export async function fetchReservations(): Promise<{ success: boolean; data?: Reservation[]; message?: string }> {
   try {
+    console.log('Fetching reservations from Supabase...');
+    
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError || !sessionData.session) {
@@ -89,6 +92,8 @@ export async function fetchReservations(): Promise<{ success: boolean; data?: Re
       };
     }
     
+    console.log('Raw data from Supabase:', data);
+    
     // Transform data to match the expected format
     const transformedData = data.map(reservation => ({
       id: reservation.id,
@@ -99,6 +104,7 @@ export async function fetchReservations(): Promise<{ success: boolean; data?: Re
       status: reservation.status as Reservation['status']
     }));
     
+    console.log('Transformed reservation data:', transformedData);
     return { 
       success: true, 
       data: transformedData 
@@ -114,6 +120,8 @@ export async function updateReservation(
   updates: Partial<Reservation>
 ): Promise<{ success: boolean; message: string }> {
   try {
+    console.log(`Updating reservation ${id} with:`, updates);
+    
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError || !sessionData.session) {
@@ -140,6 +148,7 @@ export async function updateReservation(
       };
     }
     
+    console.log(`Reservation ${id} updated successfully in the database`);
     return { 
       success: true, 
       message: 'Reservation updated successfully' 
