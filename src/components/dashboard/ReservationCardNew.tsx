@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Calendar, Clock, Phone, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { Reservation, ReservationStatus } from '../../hooks/useDashboard';
@@ -58,13 +57,12 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
       // Show toast for immediate feedback
       toast.info(`Updating to ${newStatus}...`);
       
-      // Force wait to ensure database operation completes before any UI changes
-      // Add manual_update flag to indicate this is a deliberate UI-triggered update
+      // IMPORTANT: Set manual_update to TRUE to explicitly mark this as a UI-triggered update
       const { error } = await supabase
         .from('reservations')
         .update({ 
           status: newStatus,
-          manual_update: true // Add this flag to indicate manual update
+          manual_update: true // This flag tells the webhook this is a manual update
         })
         .eq('id', reservation.id);
       
@@ -75,7 +73,7 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
       
       console.log(`Successfully updated reservation ${reservation.id} status to ${newStatus} in the database`);
       
-      // Only update UI state after successful database update
+      // Update UI state after successful database update
       onStatusChange(reservation.id, newStatus);
       
       toast.success(`Status updated to ${newStatus}`);

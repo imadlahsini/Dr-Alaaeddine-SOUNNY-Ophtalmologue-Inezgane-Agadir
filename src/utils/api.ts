@@ -1,4 +1,3 @@
-
 /**
  * API configuration and utility functions using Supabase
  */
@@ -135,6 +134,11 @@ export async function updateReservation(
       delete supabaseUpdates.timeSlot;
     }
     
+    // IMPORTANT: Set manual_update flag for status changes
+    if (updates.status) {
+      supabaseUpdates.manual_update = true;
+    }
+    
     const { error } = await supabase
       .from('reservations')
       .update(supabaseUpdates)
@@ -149,6 +153,25 @@ export async function updateReservation(
     }
     
     console.log(`Reservation ${id} updated successfully in the database`);
+    
+    // Verify the update was successful by fetching the updated record
+    const { data: verificationData, error: verificationError } = await supabase
+      .from('reservations')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (verificationError) {
+      console.warn('Error verifying update:', verificationError);
+    } else {
+      console.log(`Verification data:`, verificationData);
+      
+      // Check if status was updated correctly (if it was part of the updates)
+      if (updates.status && verificationData.status !== updates.status) {
+        console.warn(`Status verification failed: Expected ${updates.status}, got ${verificationData.status}`);
+      }
+    }
+    
     return { 
       success: true, 
       message: 'Reservation updated successfully' 
