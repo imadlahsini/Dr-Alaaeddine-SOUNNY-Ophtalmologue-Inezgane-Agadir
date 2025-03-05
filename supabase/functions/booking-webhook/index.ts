@@ -26,11 +26,13 @@ serve(async (req) => {
 
     console.log(`Webhook received ${type} event for record:`, record);
 
-    // Skip processing status changes in the webhook to avoid conflicts
-    // The admin UI should be the source of truth for status changes
+    // Skip processing status changes completely
     if (type === 'UPDATE' && body.old && body.old.status !== record.status) {
-      console.log(`Status change detected (${body.old.status} -> ${record.status}). Webhook will not modify status.`);
-      // Just log the status change and continue without additional processing
+      console.log(`Status change detected (${body.old.status} -> ${record.status}). Webhook will not process this update.`);
+      return new Response(JSON.stringify({ success: true, message: 'Status update ignored by webhook' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
     }
       
     // Format the data to send to the webhook

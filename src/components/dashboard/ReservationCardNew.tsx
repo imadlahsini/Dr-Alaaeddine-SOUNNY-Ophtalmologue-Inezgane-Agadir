@@ -3,6 +3,7 @@ import React from 'react';
 import { Calendar, Clock, User, Phone, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { Reservation, ReservationStatus } from '../../hooks/useDashboard';
 import { toast } from 'sonner';
+import { supabase } from '../../integrations/supabase/client';
 
 interface ReservationCardProps {
   reservation: Reservation;
@@ -50,10 +51,32 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
 
   const statusStyle = statusColors[reservation.status] || statusColors.Pending;
   
-  const handleStatusChange = (status: ReservationStatus) => {
-    if (reservation.status !== status) {
+  const handleStatusChange = async (status: ReservationStatus) => {
+    if (reservation.status === status) {
+      return; // No change needed
+    }
+
+    try {
+      // Show toast first for immediate feedback
       toast.info(`Updating to ${status}...`);
+      
+      // Direct update to database
+      const { error } = await supabase
+        .from('reservations')
+        .update({ status })
+        .eq('id', reservation.id);
+      
+      if (error) {
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      // Only update UI state after successful database update
       onStatusChange(reservation.id, status);
+      
+      toast.success(`Status updated to ${status}`);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error(`Failed to update status: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
