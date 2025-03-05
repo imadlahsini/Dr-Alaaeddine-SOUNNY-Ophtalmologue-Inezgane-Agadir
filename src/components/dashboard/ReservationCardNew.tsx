@@ -47,10 +47,11 @@ const ReservationCardNew: React.FC<ReservationCardProps> = ({
     }
   };
 
-  const statusStyle = statusColors[reservation.status];
+  const statusStyle = statusColors[reservation.status] || statusColors.Pending;
   
   const handleStatusChange = (status: ReservationStatus) => {
     if (reservation.status !== status) {
+      console.log(`Card requesting status change for ${reservation.id} from ${reservation.status} to ${status}`);
       onStatusChange(reservation.id, status);
     }
   };

@@ -24,9 +24,11 @@ serve(async (req) => {
     const body = await req.json();
     const { record, type } = body;
 
-    // Only process new reservation insertions
-    if (type === 'INSERT' && record) {
-      console.log('New booking received:', record);
+    console.log(`Webhook received ${type} event for record:`, record);
+
+    // Process reservation events (not just inserts)
+    if (record) {
+      console.log(`Processing ${type} event for reservation ID: ${record.id}`);
       
       // Format the data to send to the webhook
       const bookingData = {
@@ -36,7 +38,8 @@ serve(async (req) => {
         date: record.date,
         timeSlot: record.time_slot,
         status: record.status,
-        createdAt: record.created_at
+        createdAt: record.created_at,
+        eventType: type
       };
 
       // Get webhook URL from environment variable, with fallback

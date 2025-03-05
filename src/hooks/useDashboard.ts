@@ -194,7 +194,7 @@ export const useDashboard = () => {
       
       setIsUpdating(prev => ({ ...prev, [id]: true }));
       
-      console.log(`Updating reservation ${id} status to ${status}`);
+      console.log(`Starting update process for reservation ${id} - changing status to ${status}`);
       
       // Optimistically update the UI first
       setState(prev => {
@@ -216,23 +216,34 @@ export const useDashboard = () => {
       });
       
       // Then update in Supabase
-      const { error } = await supabase
+      console.log(`Sending update to Supabase for reservation ${id}`);
+      const { data, error } = await supabase
         .from('reservations')
         .update({ status })
-        .eq('id', id);
+        .eq('id', id)
+        .select();
       
       if (error) {
         console.error('Supabase error updating status:', error);
         throw error;
       }
       
-      console.log(`Successfully updated reservation ${id} status to ${status}`);
+      console.log(`Supabase update response:`, data);
+      
+      // Verify the update was successful
+      if (!data || data.length === 0) {
+        console.warn(`No data returned from update operation for reservation ${id}`);
+      } else {
+        console.log(`Successfully updated reservation ${id} status to ${status} in database`);
+      }
+      
       toast.success(`Reservation status updated to ${status}`);
     } catch (error) {
       console.error('Error updating reservation status:', error);
       toast.error('Failed to update reservation status');
       
       // Revert the optimistic update and refresh data from server
+      console.log('Reverting optimistic update and refreshing data');
       fetchReservations();
     } finally {
       setIsUpdating(prev => ({ ...prev, [id]: false }));
