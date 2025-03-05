@@ -214,88 +214,54 @@ export const useDashboard = () => {
         };
       });
       
-      // Then update in Supabase - with retries
-      const maxRetries = 3;
-      let currentTry = 0;
-      let updateSuccessful = false;
-      let updateData = null;
-      let lastError = null;
+      // Enhanced error logging for API call
+      console.log(`[STATUS UPDATE] Making Supabase API call to update reservation ${id} to status ${status}`);
       
-      while (currentTry < maxRetries && !updateSuccessful) {
-        currentTry++;
-        console.log(`[STATUS UPDATE] Attempt ${currentTry}/${maxRetries} - Sending update to Supabase for reservation ${id}`);
+      // Use a simpler update with better error handling
+      const { data, error } = await supabase
+        .from('reservations')
+        .update({ status })
+        .eq('id', id);
+      
+      if (error) {
+        console.error(`[STATUS UPDATE] Supabase update error:`, error);
+        throw new Error(`Supabase error: ${error.message}`);
+      }
+
+      // Verify update succeeded with a separate fetch
+      console.log(`[STATUS UPDATE] Verifying update succeeded for reservation ${id}`);
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('reservations')
+        .select('*')
+        .eq('id', id)
+        .single();
         
-        try {
-          const { data, error } = await supabase
-            .from('reservations')
-            .update({ status })
-            .eq('id', id)
-            .select();
-          
-          if (error) {
-            console.error(`[STATUS UPDATE] Supabase error on attempt ${currentTry}:`, error);
-            lastError = error;
-            // Wait a bit before trying again
-            if (currentTry < maxRetries) {
-              await new Promise(resolve => setTimeout(resolve, 500 * currentTry));
-            }
-          } else {
-            updateData = data;
-            updateSuccessful = true;
-            console.log(`[STATUS UPDATE] Success on attempt ${currentTry}`);
-          }
-        } catch (err) {
-          console.error(`[STATUS UPDATE] Exception on attempt ${currentTry}:`, err);
-          lastError = err;
-          // Wait a bit before trying again
-          if (currentTry < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 500 * currentTry));
-          }
-        }
+      if (verifyError) {
+        console.error(`[STATUS UPDATE] Verification query error:`, verifyError);
+        throw new Error(`Verification error: ${verifyError.message}`);
       }
       
-      if (!updateSuccessful) {
-        throw new Error(`Failed to update after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
+      if (!verifyData) {
+        console.error(`[STATUS UPDATE] Reservation not found during verification`);
+        throw new Error('Reservation not found during verification');
       }
       
-      console.log(`[STATUS UPDATE] Supabase update response:`, updateData);
-      
-      // Verify the update was successful
-      if (!updateData || updateData.length === 0) {
-        console.warn(`[STATUS UPDATE] No data returned from update operation for reservation ${id}`);
-        // Manually fetch the reservation to confirm if update worked
-        const { data: checkData, error: checkError } = await supabase
-          .from('reservations')
-          .select('*')
-          .eq('id', id)
-          .single();
-          
-        if (checkError) {
-          console.error('[STATUS UPDATE] Error checking reservation status:', checkError);
-        } else {
-          console.log(`[STATUS UPDATE] Current database status for reservation ${id}:`, checkData?.status);
-          
-          if (checkData?.status !== status) {
-            console.error(`[STATUS UPDATE] Status mismatch! Expected: ${status}, Got: ${checkData?.status}`);
-            throw new Error('Database status does not match expected value');
-          } else {
-            console.log(`[STATUS UPDATE] Verified: status was correctly updated to ${status}`);
-          }
-        }
-      } else {
-        console.log(`[STATUS UPDATE] Successfully updated reservation ${id} status to ${status} in database`);
-        
-        // Double-check that returned status matches what we set
-        const returnedStatus = updateData[0]?.status;
-        if (returnedStatus !== status) {
-          console.error(`[STATUS UPDATE] Status mismatch in response! Expected: ${status}, Got: ${returnedStatus}`);
-        }
+      if (verifyData.status !== status) {
+        console.error(`[STATUS UPDATE] Status mismatch after update! Expected: ${status}, Got: ${verifyData.status}`);
+        throw new Error(`Status update failed. Expected: ${status}, Got: ${verifyData.status}`);
       }
       
+      console.log(`[STATUS UPDATE] Successfully verified status change for ${id} to ${status}`);
       toast.success(`Reservation status updated to ${status}`);
     } catch (error) {
       console.error('[STATUS UPDATE] Error updating reservation status:', error);
-      toast.error('Failed to update reservation status');
+      
+      // Show more detailed error message
+      let errorMessage = 'Failed to update reservation status';
+      if (error instanceof Error) {
+        errorMessage = `${errorMessage}: ${error.message}`;
+      }
+      toast.error(errorMessage);
       
       // Revert the optimistic update and refresh data from server
       console.log('[STATUS UPDATE] Reverting optimistic update and refreshing data');

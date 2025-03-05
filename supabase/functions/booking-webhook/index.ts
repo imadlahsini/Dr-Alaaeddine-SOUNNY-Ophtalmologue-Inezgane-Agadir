@@ -30,6 +30,11 @@ serve(async (req) => {
     if (record) {
       console.log(`Processing ${type} event for reservation ID: ${record.id}`);
       
+      // For status updates, add extra logging
+      if (type === 'UPDATE' && body.old && body.old.status !== record.status) {
+        console.log(`Status changed from ${body.old.status} to ${record.status}`);
+      }
+      
       // Format the data to send to the webhook
       const bookingData = {
         id: record.id,
