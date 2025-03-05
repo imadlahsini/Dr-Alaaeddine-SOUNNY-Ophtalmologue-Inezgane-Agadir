@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
@@ -20,56 +19,25 @@ export const useReservationSubscription = ({
 }: UseReservationSubscriptionProps) => {
   const realtimeChannelRef = useRef<any>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
-  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const retryCountRef = useRef(0);
-  const MAX_RETRY_ATTEMPTS = 5;
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isCleaningUpRef = useRef(false);
   
   useEffect(() => {
-    // Function to enable realtime for the reservations table
-    const enableRealtimeForTable = async () => {
-      try {
-        // This is necessary to make sure the table has REPLICA IDENTITY FULL set
-        // and is added to the publication for realtime updates
-        const { error } = await supabase.rpc('enable_realtime_for_table', {
-          table_name: 'reservations' // Pass the parameter as an object with named parameter
-        });
-        
-        if (error) {
-          // Check if the error is just that the table is already in the publication
-          // This is not a real error, just informational
-          if (error.message?.includes('already member of publication')) {
-            console.log('Reservations table is already enabled for realtime updates');
-            return true; // Return success even though there was an "error"
-          }
-          
-          console.error('Failed to enable realtime for reservations table:', error);
-          return false;
-        } else {
-          console.log('Successfully enabled realtime for reservations table');
-          return true;
-        }
-      } catch (error) {
-        console.error('Error calling enable_realtime_for_table function:', error);
-        return false;
-      }
-    };
-
-    // Try to ensure the table is set up for realtime
-    enableRealtimeForTable().then(success => {
-      if (success) {
-        // Only proceed with setting up the subscription if the table is properly enabled
-        // or was already enabled (which counts as success)
-        setupRealtimeSubscription();
-      } else {
-        // If we couldn't enable realtime, mark as disconnected
-        setConnectionStatus('disconnected');
-        toast.error('Failed to enable realtime updates', {
-          description: 'Status updates may not be reflected immediately. Please refresh the page.'
-        });
-      }
-    });
+    // Connection timeout to prevent being stuck in "connecting" forever
+    const CONNECTION_TIMEOUT_MS = 10000; // 10 seconds timeout
     
+    // Set a timeout to mark as disconnected if we don't connect within the timeout period
+    connectionTimeoutRef.current = setTimeout(() => {
+      if (connectionStatus === 'connecting' && !isCleaningUpRef.current) {
+        console.log('Connection timeout reached, marking as disconnected');
+        setConnectionStatus('disconnected');
+        toast.error('Connection timeout', {
+          description: 'Could not establish realtime connection. Updates may be delayed.'
+        });
+      }
+    }, CONNECTION_TIMEOUT_MS);
+    
+    // Function to set up the realtime subscription
     const setupRealtimeSubscription = () => {
       // Prevent setup if we're in the process of cleaning up
       if (isCleaningUpRef.current) {
@@ -87,13 +55,6 @@ export const useReservationSubscription = ({
         }
       }
       
-      // Clear any pending retry attempts
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-        retryTimeoutRef.current = null;
-      }
-      
-      setConnectionStatus('connecting');
       console.log('Setting up realtime subscription for reservations...');
       
       // Create a unique channel name with timestamp to avoid conflicts
@@ -165,28 +126,23 @@ export const useReservationSubscription = ({
         })
         .subscribe(status => {
           console.log('Realtime subscription status:', status);
+          
+          // Clear the connection timeout since we received a response
+          if (connectionTimeoutRef.current) {
+            clearTimeout(connectionTimeoutRef.current);
+            connectionTimeoutRef.current = null;
+          }
+          
           if (status === 'SUBSCRIBED') {
             console.log('Realtime subscription active for reservations table');
             setConnectionStatus('connected');
-            retryCountRef.current = 0; // Reset retry counter on successful connection
           } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             console.error('Failed to subscribe to realtime changes:', status);
             setConnectionStatus('disconnected');
             
-            // Only retry if we haven't reached the max retry attempts 
-            // and we're not in the process of cleaning up
-            if (retryCountRef.current < MAX_RETRY_ATTEMPTS && !isCleaningUpRef.current) {
-              const retryDelay = Math.min(1000 * Math.pow(2, retryCountRef.current), 30000); // Max 30s delay
-              console.log(`Will retry connection in ${retryDelay}ms (attempt ${retryCountRef.current + 1}/${MAX_RETRY_ATTEMPTS})`);
-              
-              // Increment retry count before setting timeout
-              retryCountRef.current += 1;
-              
-              retryTimeoutRef.current = setTimeout(() => {
-                console.log(`Retrying connection (attempt ${retryCountRef.current}/${MAX_RETRY_ATTEMPTS})...`);
-                setupRealtimeSubscription();
-              }, retryDelay);
-            } else if (retryCountRef.current >= MAX_RETRY_ATTEMPTS) {
+            // No retry logic here - keeping it simple
+            // If the user wants to retry, they can use the refresh button
+            if (status === 'CHANNEL_ERROR') {
               toast.error('Failed to connect to realtime updates', {
                 description: 'Status updates may not be reflected immediately. Please refresh the page.'
               });
@@ -197,15 +153,20 @@ export const useReservationSubscription = ({
       realtimeChannelRef.current = channel;
     };
     
+    // Start the subscription process immediately - no need to check if the table is in the publication
+    setupRealtimeSubscription();
+    
     return () => {
       // Mark that we're cleaning up to prevent new subscriptions from being created
       isCleaningUpRef.current = true;
       
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-        retryTimeoutRef.current = null;
+      // Clear any pending timeouts
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
       }
       
+      // Clean up the channel
       if (realtimeChannelRef.current) {
         console.log('Cleaning up realtime subscription');
         try {
@@ -216,7 +177,7 @@ export const useReservationSubscription = ({
         }
       }
     };
-  }, [onInsert, onUpdate, onDelete]);
+  }, [onInsert, onUpdate, onDelete, connectionStatus]);
   
   return {
     realtimeChannel: realtimeChannelRef.current,
