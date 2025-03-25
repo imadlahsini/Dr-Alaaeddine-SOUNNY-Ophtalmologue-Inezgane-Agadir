@@ -64,23 +64,46 @@ serve(async (req) => {
     
     console.log(`Sending booking data to Google Sheets via Apps Script: ${googleAppsScriptUrl}`);
     
+    // Simplified data format for Google Sheets to ensure compatibility
+    const sheetsData = {
+      id: record.id,
+      name: record.name,
+      phone: record.phone,
+      date: record.date,
+      timeSlot: record.time_slot,
+      status: record.status,
+      createdAt: new Date(record.created_at).toISOString(),
+      eventType: type
+    };
+    
     try {
+      console.log('Data being sent to Google Sheets:', JSON.stringify(sheetsData));
+      
       const googleSheetsResponse = await fetch(googleAppsScriptUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(bookingData),
+        body: JSON.stringify(sheetsData),
+        redirect: 'follow',
       });
       
+      const responseText = await googleSheetsResponse.text();
+      console.log(`Google Sheets response status: ${googleSheetsResponse.status}`);
+      console.log(`Google Sheets response body: ${responseText}`);
+      
       if (!googleSheetsResponse.ok) {
-        console.error(`Google Sheets error: ${googleSheetsResponse.status} ${await googleSheetsResponse.text()}`);
+        console.error(`Google Sheets error: ${googleSheetsResponse.status} ${responseText}`);
       } else {
-        console.log('Successfully sent booking to Google Sheets:', await googleSheetsResponse.text());
+        console.log('Successfully sent booking to Google Sheets:', responseText);
       }
     } catch (googleError) {
-      // Log error but don't fail the entire function if Google Sheets integration fails
+      // Log detailed error but don't fail the entire function
       console.error('Error sending data to Google Sheets:', googleError);
+      console.error('Error details:', googleError.message);
+      if (googleError.stack) {
+        console.error('Stack trace:', googleError.stack);
+      }
     }
 
     return new Response(JSON.stringify({ success: true }), {
