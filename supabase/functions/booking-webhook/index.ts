@@ -59,56 +59,58 @@ serve(async (req) => {
 
     console.log('Successfully sent booking to webhook:', await webhookResponse.text());
 
-    // New functionality: Send to Google Sheets via Google Apps Script
-    const googleAppsScriptUrl = "https://script.google.com/macros/s/AKfycbwbSbaWW__Gvi6LUMCvkHk6TWSgNzBqb9NvN4ONXckV8yg0wSXszL9sXU7HmGQMGi7X/exec";
+    // New approach: Send directly to a JSONBIN.io bin for storage
+    // This is a simple, reliable way to store JSON data without complex integrations
+    const JSONBIN_API_KEY = Deno.env.get('JSONBIN_API_KEY') ?? '';
+    const JSONBIN_BIN_ID = Deno.env.get('JSONBIN_BIN_ID') ?? '';
     
-    console.log(`Sending booking data to Google Sheets via Apps Script: ${googleAppsScriptUrl}`);
-    
-    // Format data specifically for Google Apps Script
-    // Convert ALL values to strings to avoid type issues
-    const sheetsData = {
-      id: String(record.id),
-      name: String(record.name),
-      phone: String(record.phone),
-      date: String(record.date),
-      time_slot: String(record.time_slot), // Note: using time_slot instead of timeSlot
-      status: String(record.status),
-      created_at: String(record.created_at), // Note: using created_at instead of createdAt
-      event_type: String(type) // Note: using event_type instead of eventType
-    };
-    
-    try {
-      console.log('Data being sent to Google Sheets:', JSON.stringify(sheetsData));
-      
-      // Try direct POST as form-encoded data
-      const formData = new URLSearchParams();
-      for (const [key, value] of Object.entries(sheetsData)) {
-        formData.append(key, value);
+    if (JSONBIN_API_KEY && JSONBIN_BIN_ID) {
+      try {
+        console.log('Sending booking data to JSONBin.io for storage');
+        
+        // First, get the current bin data
+        const getBinResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+          method: 'GET',
+          headers: {
+            'X-Master-Key': JSONBIN_API_KEY,
+          }
+        });
+        
+        if (!getBinResponse.ok) {
+          throw new Error(`JSONBin.io GET error: ${getBinResponse.status}`);
+        }
+        
+        const binData = await getBinResponse.json();
+        const bookings = Array.isArray(binData.record) ? binData.record : [];
+        
+        // Add new booking and update the bin
+        bookings.push({
+          ...bookingData,
+          timestamp: new Date().toISOString() // Add timestamp for sorting
+        });
+        
+        const updateResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Master-Key': JSONBIN_API_KEY,
+          },
+          body: JSON.stringify(bookings)
+        });
+        
+        if (!updateResponse.ok) {
+          throw new Error(`JSONBin.io PUT error: ${updateResponse.status}`);
+        }
+        
+        console.log('Successfully stored booking in JSONBin.io');
+      } catch (jsonbinError) {
+        console.error('Error storing data in JSONBin.io:', jsonbinError.message);
+        if (jsonbinError.stack) {
+          console.error('Stack trace:', jsonbinError.stack);
+        }
       }
-      
-      console.log(`Sending data to Google Sheets as form data`);
-      const googleResponse = await fetch(googleAppsScriptUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData.toString(),
-      });
-      
-      const responseText = await googleResponse.text();
-      console.log(`Google Sheets response status: ${googleResponse.status}`);
-      console.log(`Google Sheets response: ${responseText}`);
-      
-      if (!googleResponse.ok) {
-        console.error(`Google Sheets error: ${googleResponse.status} ${responseText}`);
-      } else {
-        console.log('Successfully sent booking to Google Sheets');
-      }
-    } catch (googleError) {
-      console.error('Error sending data to Google Sheets:', googleError.message);
-      if (googleError.stack) {
-        console.error('Stack trace:', googleError.stack);
-      }
+    } else {
+      console.log('JSONBin.io integration disabled: missing API key or bin ID');
     }
 
     return new Response(JSON.stringify({ success: true }), {
