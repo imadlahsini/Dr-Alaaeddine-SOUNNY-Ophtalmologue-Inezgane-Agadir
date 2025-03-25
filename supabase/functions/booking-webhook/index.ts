@@ -64,27 +64,40 @@ serve(async (req) => {
     
     console.log(`Sending booking data to Google Sheets via Apps Script: ${googleAppsScriptUrl}`);
     
-    // Simplified data format for Google Sheets to ensure compatibility
+    // Format date in a more consistent way for Google Sheets
+    const formattedDate = new Date(record.created_at).toISOString();
+    
+    // Simplified data format for Google Sheets with string values to avoid any issues
     const sheetsData = {
-      id: record.id,
-      name: record.name,
-      phone: record.phone,
-      date: record.date,
-      timeSlot: record.time_slot,
-      status: record.status,
-      createdAt: new Date(record.created_at).toISOString(),
-      eventType: type
+      id: String(record.id),
+      name: String(record.name),
+      phone: String(record.phone),
+      date: String(record.date),
+      timeSlot: String(record.time_slot),
+      status: String(record.status),
+      createdAt: formattedDate,
+      eventType: String(type)
     };
     
     try {
       console.log('Data being sent to Google Sheets:', JSON.stringify(sheetsData));
       
+      // Using URLSearchParams to send data as URL-encoded form data
+      // This is more reliable than JSON for some Apps Script implementations
+      const formData = new URLSearchParams();
+      for (const [key, value] of Object.entries(sheetsData)) {
+        formData.append(key, value);
+      }
+      
+      console.log('Sending as form data:', formData.toString());
+      
+      // First try with form data
       const googleSheetsResponse = await fetch(googleAppsScriptUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify(sheetsData),
+        body: formData.toString(),
         redirect: 'follow',
       });
       
@@ -93,9 +106,29 @@ serve(async (req) => {
       console.log(`Google Sheets response body: ${responseText}`);
       
       if (!googleSheetsResponse.ok) {
-        console.error(`Google Sheets error: ${googleSheetsResponse.status} ${responseText}`);
+        console.log('Form data approach failed, trying with JSON...');
+        
+        // If form data fails, try with JSON
+        const jsonResponse = await fetch(googleAppsScriptUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(sheetsData),
+          redirect: 'follow',
+        });
+        
+        const jsonResponseText = await jsonResponse.text();
+        console.log(`Google Sheets JSON response status: ${jsonResponse.status}`);
+        console.log(`Google Sheets JSON response body: ${jsonResponseText}`);
+        
+        if (!jsonResponse.ok) {
+          console.error(`Both approaches failed for Google Sheets: ${jsonResponse.status} ${jsonResponseText}`);
+        } else {
+          console.log('Successfully sent booking to Google Sheets using JSON:', jsonResponseText);
+        }
       } else {
-        console.log('Successfully sent booking to Google Sheets:', responseText);
+        console.log('Successfully sent booking to Google Sheets using form data:', responseText);
       }
     } catch (googleError) {
       // Log detailed error but don't fail the entire function
