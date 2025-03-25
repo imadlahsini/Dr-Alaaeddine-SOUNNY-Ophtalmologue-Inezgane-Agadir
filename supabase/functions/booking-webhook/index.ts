@@ -64,76 +64,48 @@ serve(async (req) => {
     
     console.log(`Sending booking data to Google Sheets via Apps Script: ${googleAppsScriptUrl}`);
     
-    // Format date in a more consistent way for Google Sheets
-    const formattedDate = new Date(record.created_at).toISOString();
-    
-    // Simplified data format for Google Sheets with string values to avoid any issues
+    // Format data specifically for Google Apps Script
+    // Convert ALL values to strings to avoid type issues
     const sheetsData = {
       id: String(record.id),
       name: String(record.name),
       phone: String(record.phone),
       date: String(record.date),
-      timeSlot: String(record.time_slot),
+      time_slot: String(record.time_slot), // Note: using time_slot instead of timeSlot
       status: String(record.status),
-      createdAt: formattedDate,
-      eventType: String(type)
+      created_at: String(record.created_at), // Note: using created_at instead of createdAt
+      event_type: String(type) // Note: using event_type instead of eventType
     };
     
     try {
       console.log('Data being sent to Google Sheets:', JSON.stringify(sheetsData));
       
-      // Using URLSearchParams to send data as URL-encoded form data
-      // This is more reliable than JSON for some Apps Script implementations
+      // Try direct POST as form-encoded data
       const formData = new URLSearchParams();
       for (const [key, value] of Object.entries(sheetsData)) {
         formData.append(key, value);
       }
       
-      console.log('Sending as form data:', formData.toString());
-      
-      // First try with form data
-      const googleSheetsResponse = await fetch(googleAppsScriptUrl, {
+      console.log(`Sending data to Google Sheets as form data`);
+      const googleResponse = await fetch(googleAppsScriptUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: formData.toString(),
-        redirect: 'follow',
       });
       
-      const responseText = await googleSheetsResponse.text();
-      console.log(`Google Sheets response status: ${googleSheetsResponse.status}`);
-      console.log(`Google Sheets response body: ${responseText}`);
+      const responseText = await googleResponse.text();
+      console.log(`Google Sheets response status: ${googleResponse.status}`);
+      console.log(`Google Sheets response: ${responseText}`);
       
-      if (!googleSheetsResponse.ok) {
-        console.log('Form data approach failed, trying with JSON...');
-        
-        // If form data fails, try with JSON
-        const jsonResponse = await fetch(googleAppsScriptUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(sheetsData),
-          redirect: 'follow',
-        });
-        
-        const jsonResponseText = await jsonResponse.text();
-        console.log(`Google Sheets JSON response status: ${jsonResponse.status}`);
-        console.log(`Google Sheets JSON response body: ${jsonResponseText}`);
-        
-        if (!jsonResponse.ok) {
-          console.error(`Both approaches failed for Google Sheets: ${jsonResponse.status} ${jsonResponseText}`);
-        } else {
-          console.log('Successfully sent booking to Google Sheets using JSON:', jsonResponseText);
-        }
+      if (!googleResponse.ok) {
+        console.error(`Google Sheets error: ${googleResponse.status} ${responseText}`);
       } else {
-        console.log('Successfully sent booking to Google Sheets using form data:', responseText);
+        console.log('Successfully sent booking to Google Sheets');
       }
     } catch (googleError) {
-      // Log detailed error but don't fail the entire function
-      console.error('Error sending data to Google Sheets:', googleError);
-      console.error('Error details:', googleError.message);
+      console.error('Error sending data to Google Sheets:', googleError.message);
       if (googleError.stack) {
         console.error('Stack trace:', googleError.stack);
       }
