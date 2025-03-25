@@ -44,6 +44,7 @@ serve(async (req) => {
     console.log(`Sending booking data to webhook: ${webhookUrl}`);
     console.log('Booking data being sent:', JSON.stringify(bookingData));
     
+    // Send to n8n webhook (existing functionality)
     const webhookResponse = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
@@ -57,6 +58,31 @@ serve(async (req) => {
     }
 
     console.log('Successfully sent booking to webhook:', await webhookResponse.text());
+
+    // New functionality: Send to Google Sheets via Google Apps Script
+    const googleAppsScriptUrl = "https://script.google.com/macros/s/AKfycbwbSbaWW__Gvi6LUMCvkHk6TWSgNzBqb9NvN4ONXckV8yg0wSXszL9sXU7HmGQMGi7X/exec";
+    
+    console.log(`Sending booking data to Google Sheets via Apps Script: ${googleAppsScriptUrl}`);
+    
+    try {
+      const googleSheetsResponse = await fetch(googleAppsScriptUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookingData),
+      });
+      
+      if (!googleSheetsResponse.ok) {
+        console.error(`Google Sheets error: ${googleSheetsResponse.status} ${await googleSheetsResponse.text()}`);
+      } else {
+        console.log('Successfully sent booking to Google Sheets:', await googleSheetsResponse.text());
+      }
+    } catch (googleError) {
+      // Log error but don't fail the entire function if Google Sheets integration fails
+      console.error('Error sending data to Google Sheets:', googleError);
+    }
+
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
