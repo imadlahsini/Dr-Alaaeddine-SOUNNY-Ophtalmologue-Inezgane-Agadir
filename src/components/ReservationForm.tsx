@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import TimeSlotSelector from './TimeSlotSelector';
 import { sendReservationNotification } from '../utils/pushNotificationService';
 import { createReservation } from '../utils/api';
+import { sendTelegramNotification } from '@/utils/telegramNotif';
 
 const translations = {
   fr: {
@@ -126,9 +127,12 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
     name: '',
     phone: '',
     date: '',
-    timeSlot: ''
+    timeSlot: '',
+    language: language
   });
-
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, language }));
+  }, [language]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formValid, setFormValid] = useState(false);
   const [dateOptions, setDateOptions] = useState<{ value: string; label: string; disabled: boolean }[]>([]);
@@ -181,61 +185,81 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ language }) => {
     setFormData(prev => ({ ...prev, timeSlot }));
   };
 
+
+
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  if (!validateForm()) return;
+  
+  setIsSubmitting(true);
+  
+  try {
+    console.log('Starting form submission...');
+    const result = await createReservation({
+      name: formData.name,
+      phone: formData.phone,
+      date: formData.date,
+      timeSlot: formData.timeSlot,
+      language:formData.language
+    });
     
-    if (!validateForm()) return;
-    
-    setIsSubmitting(true);
-    
-    try {
-      console.log('Starting form submission...');
-      const result = await createReservation({
-        name: formData.name,
-        phone: formData.phone,
-        date: formData.date,
-        timeSlot: formData.timeSlot
-      });
-      
-      if (result.success) {
-        try {
-          console.log('Attempting to send push notification for admins...');
-          const notificationSent = sendReservationNotification({
-            name: formData.name,
-            phone: formData.phone,
-            date: formData.date,
-            timeSlot: formData.timeSlot
-          });
-          console.log('Push notification sent:', notificationSent);
-        } catch (pushError) {
-          console.warn('Push notification failed, but reservation was saved:', pushError);
-        }
+    if (result.success) {
+      try {
+        console.log('Sending push notification for admins...');
+        // Envoi de la notification push originale (si nécessaire)
+        sendReservationNotification({
+          name: formData.name,
+          phone: formData.phone,
+          date: formData.date,
+          timeSlot: formData.timeSlot
+        });
         
-        toast.success(t.success);
-        
-        setTimeout(() => {
-          navigate('/thank-you', { 
-            state: { 
-              reservation: {
-                name: formData.name,
-                phone: formData.phone,
-                date: formData.date,
-                timeSlot: formData.timeSlot
-              },
-              language: language
-            }
-          });
-        }, 1000);
-      } else {
-        toast.error(result.message || 'Failed to create reservation');
+        // Envoi de la notification Telegram
+        console.log('Sending Telegram notification...');
+        const telegramResult = await sendTelegramNotification({
+          name: formData.name,
+          phone: formData.phone,
+          date: formData.date,
+          timeSlot: formData.timeSlot,
+          language:formData.language
+        });
+        console.log('Telegram notification result:', telegramResult);
+      } catch (notificationError) {
+        console.warn('Notification failed, but reservation was saved:', notificationError);
       }
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      toast.error('An error occurred. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+      
+      toast.success(t.success);
+      
+      setTimeout(() => {
+        navigate('/thank-you', { 
+          state: { 
+            reservation: {
+              name: formData.name,
+              phone: formData.phone,
+              date: formData.date,
+              timeSlot: formData.timeSlot
+            },
+            language: language
+          }
+        });
+      }, 1000);
+    } else {
+      toast.error(result.message || 'Failed to create reservation');
     }
-  };
+  } catch (error) {
+    console.error('Error submitting form:', error);
+    toast.error('An error occurred. Please try again.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+
+
+
+
 
   const isRtl = language === 'ar';
 

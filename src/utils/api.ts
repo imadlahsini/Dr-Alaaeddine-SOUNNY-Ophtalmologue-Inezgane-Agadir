@@ -18,6 +18,7 @@ export interface Reservation {
   date: string;
   timeSlot: string;
   status: 'Pending' | 'Confirmed' | 'Canceled' | 'Not Responding';
+  language?: string;
 }
 
 export interface LoginCredentials {
@@ -31,7 +32,7 @@ export async function createReservation(reservationData: Omit<Reservation, 'id' 
   console.log('Reservation data:', JSON.stringify(reservationData));
   
   try {
-    // Convert the timeSlot property to time_slot for Supabase
+    // 1. First save to Supabase
     const { data, error } = await supabase
       .from('reservations')
       .insert({
@@ -42,29 +43,59 @@ export async function createReservation(reservationData: Omit<Reservation, 'id' 
         status: 'Pending'
       })
       .select();
-    
+      
     if (error) {
       console.error('Supabase error:', error);
-      return { 
-        success: false, 
-        message: error.message || 'Error creating reservation' 
+      return {
+        success: false,
+        message: error.message || 'Error creating reservation'
       };
     }
-    
-    console.log('Reservation created successfully:', data);
-    return { 
-      success: true, 
+      
+    console.log('Reservation created successfully in Supabase:', data);
+      
+    // 2. Then save to Google Sheets
+    try {
+      //URL of your Google Apps Script deployment
+      const googleScriptUrl = '';
+          
+      // Revenir au mode 'no-cors' pour éviter les erreurs CORS
+      await fetch(googleScriptUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: reservationData.name,
+          phone: reservationData.phone,
+          date: reservationData.date,
+          timeSlot: reservationData.timeSlot,
+          language:reservationData.language
+        }),
+        mode: 'no-cors'  // Mode 'no-cors' pour contourner le problème CORS
+      });
+      
+      // Avec mode: 'no-cors', on ne peut pas lire la réponse,
+      // donc on suppose que ça a fonctionné si aucune exception n'est levée
+      console.log('Google Sheets request sent (response not readable in no-cors mode)');
+    } catch (googleError) {
+      console.warn('Google Sheets storage error:', googleError);
+      // Continue because error with Google Sheets is not critical
+    }
+      
+    return {
+      success: true,
       message: 'Reservation created successfully',
       id: data?.[0]?.id
     };
   } catch (error) {
     console.error('Error creating reservation:', error);
-    
+      
     let errorMessage = 'Network error. Please try again.';
     if (error instanceof Error) {
       errorMessage = `Error: ${error.message}`;
     }
-    
+      
     return { success: false, message: errorMessage };
   }
 }
@@ -138,6 +169,7 @@ export async function fetchReservations(): Promise<{ success: boolean; data?: Re
       date: reservation.date,
       timeSlot: reservation.time_slot,
       status: reservation.status as Reservation['status']
+      
     }));
     
     console.log('Transformed reservation data:', transformedData);
@@ -217,7 +249,8 @@ export function transformReservationRecord(record: any): Reservation | null {
       phone: record.phone,
       date: record.date,
       timeSlot: record.time_slot,
-      status: record.status
+      status: record.status,
+      language:record.language
     };
   } catch (error) {
     console.error('Error transforming reservation record:', error, record);
