@@ -51,3 +51,14 @@ function doOptions(e) {
   output.setMimeType(ContentService.MimeType.TEXT);
   return output;
 }
+
+///
+The google-sheet-script.gs file contains the script to be pasted into the Google Apps Script editor (linked to your Google Sheet) to receive data from the application.
+
+Go to your Google Sheet → Extensions → Apps Script
+
+Paste the code from google-sheet-script.gs
+
+Deploy as a web service (run as the owner, accessible to everyone)
+
+
