@@ -57,7 +57,7 @@ export async function createReservation(reservationData: Omit<Reservation, 'id' 
     // 2. Then save to Google Sheets
     try {
       //URL of your Google Apps Script deployment
-      const googleScriptUrl = '';
+      const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwBQktxTJZyyqTyWdarrjDxG7nYISSo47oXn65vvHH4ikymzPHRlXqzRRMl6hPzpfnZFQ/exec';
           
       // Revenir au mode 'no-cors' pour éviter les erreurs CORS
       await fetch(googleScriptUrl, {

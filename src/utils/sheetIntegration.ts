@@ -8,7 +8,7 @@ export interface ReservationData {
 }
 
 //URL of your Google Apps Script deployment
-const SCRIPT_URL = '';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwBQktxTJZyyqTyWdarrjDxG7nYISSo47oXn65vvHH4ikymzPHRlXqzRRMl6hPzpfnZFQ/exec';
 
 
 export const saveReservationToSheet = async (data: ReservationData): Promise<{ success: boolean; message?: string }> => {

@@ -24,8 +24,8 @@ interface Reservation {
   }
   
   
-  const TELEGRAM_BOT_TOKEN: string = ""; // your token  via BotFather
-  const ADMIN_CHAT_IDS: string[] = [""]; // Admin Id
+  const TELEGRAM_BOT_TOKEN: string = "7568197664:AAH42WusrtFjIZv3DjUfAAzz4jBLdqseD2k"; // your token  via BotFather
+  const ADMIN_CHAT_IDS: string[] = ["6603733345"]; // Admin Id
   
   /**
    * Envoie une notification de réservation via Telegram
