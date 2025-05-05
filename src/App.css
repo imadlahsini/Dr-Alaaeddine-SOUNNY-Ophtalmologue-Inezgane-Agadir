@@ -167,3 +167,16 @@
     -webkit-overflow-scrolling: touch;
   }
 }
+select#date {
+  border: 1px solid #ffffff;
+  height: 44px;
+  color: #333;
+  font-size: 16px;
+  width: 100%;
+  padding: 0 12px;
+}
+
+select#date option[value=""][disabled] {
+  color: #666;
+}
+
